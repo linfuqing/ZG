@@ -31,3 +31,6 @@
 # Debug files
 *.dSYM/
 *.su
+/ZG.VC.VC.opendb
+/.vs/ZG/v14
+/Debug

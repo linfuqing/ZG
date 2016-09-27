@@ -1,4 +1,5 @@
 #include "TileObject.h"
+#include "Math.h"
 
 ZGUINT ZGTileObjectRun(
 	LPZGTILEOBJECT pTileObject,
@@ -10,6 +11,7 @@ ZGUINT ZGTileObjectRun(
 	ZGUINT uMaxDepth,
 	ZGUINT uBufferLength, 
 	PZGUINT8 puBuffer, 
+	PZGUINT puIndex, 
 	ZGTILEACTIONTEST pfnTileActionTest,
 	ZGTILEOBJECTSET pfnObjectSet)
 {
@@ -56,10 +58,13 @@ ZGUINT ZGTileObjectRun(
 						pTileAction == ZG_NULL ? ZG_NULL : pTileAction->pData,
 						pTileObject->Instance.pData,
 						pTileActionMapNode->uMaxIndex,
-						pTileActionMapNode->uMaxCount,
+						ZG_MIN(pTileActionMapNode->uMaxCount, pTileActionMapNode->uCount),
 						pTileActionMapNode->ppNodes);
 				}
 			}
+
+			if (puIndex != ZG_NULL)
+				*puIndex = i;
 
 			return uDepth;
 		}

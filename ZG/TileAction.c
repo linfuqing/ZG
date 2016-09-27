@@ -17,7 +17,7 @@ static ZGUINT sg_uMaxEvaluation;
 ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
 {
 	LPZGTILEMAPNODE pTemp = (LPZGTILEMAPNODE)pMapNode;
-	ZGUINT uCount, uLength, uSize, i, j;
+	ZGUINT uTemp = sg_uBufferLength * sizeof(ZGUINT8) / sizeof(ZGUINT), uCount, uLength, uSize, i, j;
 	PZGUINT puIndices;
 	LPZGTILENODE pTileNode, *ppTileNodes;
 	if (sg_pfnTileActionTest == ZG_NULL)
@@ -27,7 +27,7 @@ ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
 	}
 	else
 	{
-		uCount = sg_uBufferLength;
+		uCount = uTemp;
 		puIndices = (PZGUINT)sg_puBuffer;
 		if (ZGMapTest(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, &uCount, puIndices))
 		{
@@ -87,7 +87,7 @@ ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
 			if (uIndex > 0)
 			{
 				--uIndex;
-				uCount = sg_uBufferLength;
+				uCount = uTemp;
 				puIndices = (PZGUINT)sg_puBuffer;
 				if (ZGMapTest(
 					&sg_pTileMap->Instance,

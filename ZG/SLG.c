@@ -1,10 +1,14 @@
 #include <malloc.h>
 #include "SLG.h"
 
-#define ZG_SLG_MAX_BUFFER 1024
+#define ZG_SLG_MAP_NODE_SIZE 16
+#define ZG_SLG_BUFFER_SIZE 1024
 
-static ZGUINT8 sg_auBuffer[ZG_SLG_MAX_BUFFER];
-static ZGUINT sg_uToIndex;
+static ZGUINT8 sg_auBuffer[ZG_SLG_BUFFER_SIZE];
+static ZGUINT sg_uIndex;
+static ZGUINT sg_uOffset;
+static ZGUINT sg_uCount;
+static LPZGRBLIST sg_pRBList;
 
 ZGBOOLEAN __ZGSLGAnalyzate(const void* pTileActionData, const void* pSourceTileNodeData, const void* pDestinationTileNodeData)
 {
@@ -13,7 +17,7 @@ ZGBOOLEAN __ZGSLGAnalyzate(const void* pTileActionData, const void* pSourceTileN
 
 ZGBOOLEAN __ZGSLGTestNode(const void* pTileNodeData, const ZGTILERANGE* pTileRange, LPZGTILEMAP pTileMap, ZGUINT uIndex)
 {
-	ZGUINT uCount = ZG_SLG_MAX_BUFFER;
+	ZGUINT uCount = ZG_SLG_BUFFER_SIZE;
 	PZGUINT puIndices = (PZGUINT)sg_auBuffer;
 	if (ZGMapTest(&pTileMap->Instance, &pTileRange->Instance, uIndex, pTileRange->uOffset, &uCount, puIndices))
 	{
@@ -21,7 +25,7 @@ ZGBOOLEAN __ZGSLGTestNode(const void* pTileNodeData, const ZGTILERANGE* pTileRan
 		for (ZGUINT i = 0; i < uCount; ++i)
 		{
 			LPZGTILENODE pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, puIndices[i]))->pNode;
-			if (uIndex == sg_uToIndex || pTileNode == ZG_NULL || pTileNode->pData == ZG_NULL || ((PZGUINT)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_CAMP] != uCamp)
+			if (uIndex == sg_uIndex || pTileNode == ZG_NULL || pTileNode->pData == ZG_NULL || ((PZGUINT)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_CAMP] != uCamp)
 				return ZG_TRUE;
 		}
 	}
@@ -43,9 +47,47 @@ ZGBOOLEAN __ZGSLGTestAction(const void* pTileActionData, const void* pTileNodeDa
 	return ZG_TRUE;
 }
 
-void __ZGSLGSet(void* pTileActionData, void* pTileNodeData, ZGUINT uIndex, ZGUINT uCount, LPZGTILENODE* ppTileNodes)
+void __ZGSLGAction(void* pTileActionData, void* pTileNodeData, ZGUINT uIndex, ZGUINT uCount, LPZGTILENODE* ppTileNodes)
 {
+	sg_uIndex = uIndex;
+	sg_uOffset = (ZGUINT)((ZGLONG)(ppTileNodes + uCount) - (ZGLONG)sg_auBuffer);
+	sg_uCount = 0;
 
+	ZGUINT i, j, uLength = ZG_SLG_BUFFER_SIZE - sg_uOffset, uSize = 0;
+	ZGLONG lDamage, lHp;
+	LPZGTILENODE pTileNode;
+	LPZGRBLISTNODE pRBListNode;
+	LPZGSLGINFO pInfos = (LPZGSLGINFO)(sg_auBuffer + sg_uOffset);
+
+	for (i = 0; i < uCount; ++i)
+	{
+		pTileNode = ppTileNodes[i];
+		if (pTileNode == ZG_NULL)
+			continue;
+
+		lDamage = 0;
+		for (j = 0; j < ZG_SLG_ELEMENT_COUNT; ++j)
+		{
+			lDamage += ((PZGLONG)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_DEFENSE + j] - ((PZGLONG)pTileNodeData)[ZG_SLG_OBJECT_ATTRIBUTE_ATTACK + j];
+		}
+
+		pRBListNode = (LPZGRBLISTNODE)((PZGLONG)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_PARENT];
+
+		lHp = ((PZGLONG)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_HP] += lDamage;
+		if (lHp < 0)
+			ZGRBListRemove(sg_pRBList, pRBListNode);
+
+		uSize += sizeof(ZGSLGINFO);
+		if (uSize <= uLength)
+		{
+			pInfos->pRBListNode = (LPZGRBLISTNODE)((PZGLONG)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_PARENT];
+			pInfos->lDamage = lDamage;
+
+			++pInfos;
+
+			++sg_uCount;
+		}
+	}
 }
 
 void ZGSLGDestroy(void* pData)
@@ -100,6 +142,8 @@ LPZGRBLISTNODE ZGSLGCreateObject(
 	for (ZGUINT i = 0; i < ZG_SLG_OBJECT_ATTRIBUTE_COUNT; ++i)
 		plAttributes[i] = 0;
 
+	plAttributes[ZG_SLG_OBJECT_ATTRIBUTE_PARENT] = (ZGLONG)pResult;
+
 	ZGRBListAdd(pRBList, pResult, pTileObject, (const void*)(ZGLONG)uTime, ZG_TRUE);
 
 	return pResult;
@@ -132,20 +176,22 @@ LPZGRBLIST ZGSLGCreateQueue()
 
 LPZGTILEMAP ZGSLGCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
 {
-	ZGUINT uCount = uWidth * uHeight, uFlagLength = (uCount + 7) >> 3, uChildCount = ZGTileChildCount(uWidth, uHeight, bIsOblique);
+	ZGUINT uCount = uWidth * uHeight, uFlagLength = (uCount + 7) >> 3, uChildCount = ZGTileChildCount(uWidth, uHeight, bIsOblique), uNodeCount = uCount * ZG_SLG_MAP_NODE_SIZE;
 	LPZGTILEMAP pTileMap = (LPZGTILEMAP)malloc(sizeof(ZGTILEMAP) + 
 		sizeof(ZGUINT8) * uFlagLength +
 		sizeof(LPZGNODE) * uChildCount +
-		sizeof(ZGNODE) * uCount +
+		sizeof(ZGNODE) * uCount + 
+		sizeof(LPZGTILENODE) * uNodeCount +
 		sizeof(ZGTILEMAPNODE) * uCount + 
 		sizeof(ZGTILENODEMAPNODE) * uCount + 
 		sizeof(ZGTILEACTIONMAPNODE) * uCount);
 	PZGUINT8 puFlags = (PZGUINT8)(pTileMap + 1);
 	LPZGNODE* ppNodes = (LPZGNODE*)(puFlags + uFlagLength), pNodes = (LPZGNODE)(ppNodes + uChildCount);
-	LPZGTILEMAPNODE pMapNodes = (LPZGTILEMAPNODE)(pNodes + uCount);
-	LPZGTILENODEMAPNODE pNodeMapNodes = (LPZGTILENODEMAPNODE)(pMapNodes + uCount);
-	LPZGTILEACTIONMAPNODE pActionMapNodes = (LPZGTILEACTIONMAPNODE)(pNodeMapNodes + uCount);
-	ZGTileMapEnable(pTileMap, puFlags, ppNodes, pNodes, pMapNodes, uWidth, uHeight, bIsOblique);
+	LPZGTILENODE* ppTileNodes = (LPZGTILENODE*)(pNodes + uCount);
+	LPZGTILEMAPNODE pTileMapNodes = (LPZGTILEMAPNODE)(ppTileNodes + uNodeCount);
+	LPZGTILENODEMAPNODE pTileNodeMapNodes = (LPZGTILENODEMAPNODE)(pTileMapNodes + uCount);
+	LPZGTILEACTIONMAPNODE pTileActionMapNodes = (LPZGTILEACTIONMAPNODE)(pTileNodeMapNodes + uCount);
+	ZGTileMapEnable(pTileMap, puFlags, ppNodes, pNodes, pTileMapNodes, uWidth, uHeight, bIsOblique);
 
 	ZGUINT i;
 	for (i = 0; i < uFlagLength; ++i)
@@ -153,13 +199,13 @@ LPZGTILEMAP ZGSLGCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
 
 	for (i = 0; i < uCount; ++i)
 	{
-		pActionMapNodes->ppNodes = ZG_NULL;
-		pActionMapNodes->uCount = 0;
-		pActionMapNodes->pData = ZG_NULL;
-		pNodeMapNodes->uDistance = 1;
-		pNodeMapNodes->pNode = ZG_NULL;
-		pNodeMapNodes->pData = pActionMapNodes++;
-		((LPZGTILEMAPNODE)pTileMap->pNodes[i].pData)->pData = pNodeMapNodes++;
+		pTileActionMapNodes->ppNodes = ppTileNodes + i * ZG_SLG_MAP_NODE_SIZE;
+		pTileActionMapNodes->uCount = ZG_SLG_MAP_NODE_SIZE;
+		pTileActionMapNodes->pData = ZG_NULL;
+		pTileNodeMapNodes->uDistance = 1;
+		pTileNodeMapNodes->pNode = ZG_NULL;
+		pTileNodeMapNodes->pData = pTileActionMapNodes++;
+		((LPZGTILEMAPNODE)pTileMap->pNodes[i].pData)->pData = pTileNodeMapNodes++;
 	}
 
 	return pTileMap;
@@ -198,20 +244,100 @@ ZGUINT ZGSLGSearch(LPZGRBLISTNODE pRBListNode, LPZGTILEMAP pTileMap, ZGUINT uInd
 	if (pRBListNode == ZG_NULL || pRBListNode->pValue == ZG_NULL)
 		return ZG_NULL;
 
-	sg_uToIndex = uIndex;
+	sg_uIndex = uIndex;
 	return ZGTileNodeSearch(&((LPZGTILEOBJECT)(pRBListNode->pValue))->Instance, pTileMap, ZG_FALSE, uIndex, __ZGSLGTestNode);
 }
 
-ZGUINT ZGSLGRun(
-	LPZGRBLIST pRbList, 
+ZGBOOLEAN ZGSLGAction(
+	LPZGRBLISTNODE pRBListNode, 
 	LPZGTILEMAP pTileMap, 
+	LPZGRBLIST pRBList, 
+	ZGUINT uActionIndex, 
+	ZGUINT uMapIndex,
+	PZGUINT puInfoCount,
+	LPZGSLGINFO* ppInfos)
+{
+	if (pRBListNode == ZG_NULL || pTileMap == ZG_NULL || pRBList == ZG_NULL)
+		return ZG_FALSE;
+
+	if (pRBListNode->pValue == ZG_NULL)
+		return ZG_FALSE;
+
+	LPZGTILEOBJECT pTileObject = (LPZGTILEOBJECT)pRBListNode->pValue;
+	if (pTileObject->ppActions == ZG_NULL || pTileObject->uActionCount <= uActionIndex)
+		return ZG_FALSE;
+
+	LPZGTILEACTION pTileAction = pTileObject->ppActions[uActionIndex];
+	if (pTileAction == ZG_NULL)
+		return ZG_FALSE;
+
+	ZGUINT uCount = ZG_SLG_BUFFER_SIZE * sizeof(ZGUINT8) / sizeof(ZGUINT);
+	PZGUINT puIndices = (PZGUINT)sg_auBuffer;
+	if (ZGMapTest(&pTileMap->Instance, &pTileAction->Instance.Instance, uMapIndex, pTileAction->Instance.uOffset, &uCount, puIndices))
+	{
+		ZGUINT uSize = uCount * sizeof(ZGUINT) + sizeof(LPZGTILENODE), uLength = 0, i, j;
+		LPZGTILENODE *ppTileNodes = (LPZGTILENODE*)(puIndices + uCount), pTileNode;
+		for (i = 0; i < uCount; ++i)
+		{
+			pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, puIndices[i]))->pNode;
+			if (pTileNode == ZG_NULL)
+				continue;
+
+			if (pTileAction->pfnAnalyzation != ZG_NULL && !pTileAction->pfnAnalyzation(pTileAction->pData, pTileObject->Instance.pData, pTileNode->pData))
+				continue;
+
+			for (j = 0; j < uLength; ++j)
+			{
+				if (ppTileNodes[j] == pTileNode)
+					break;
+			}
+
+			if (j < uLength)
+				continue;
+
+			if (uSize > ZG_SLG_BUFFER_SIZE)
+				++uLength;
+			else
+			{
+				ppTileNodes[uLength++] = pTileNode;
+
+				uSize += sizeof(LPZGTILENODE);
+			}
+		}
+
+		if (uLength > 0)
+		{
+			sg_pRBList = pRBList;
+
+			__ZGSLGAction(pTileAction->pData, pTileObject->Instance.pData, uMapIndex, uLength, ppTileNodes);
+
+			if (puInfoCount != ZG_NULL)
+				*puInfoCount = sg_uCount;
+
+			if (ppInfos != ZG_NULL)
+				*ppInfos = (LPZGSLGINFO)(sg_auBuffer + sg_uOffset);
+
+			return ZG_TRUE;
+		}
+	}
+
+	return ZG_FALSE;
+}
+
+ZGUINT ZGSLGRun(
+	LPZGRBLIST pRBList, 
+	LPZGTILEMAP pTileMap,
 	ZGUINT uEvaluation,
 	ZGUINT uMinEvaluation,
 	ZGUINT uMaxEvaluation,
 	ZGUINT uMaxDistance,
-	ZGUINT uMaxDepth)
+	ZGUINT uMaxDepth, 
+	PZGUINT puActionIndex, 
+	PZGUINT puMapIndex, 
+	PZGUINT puInfoCount, 
+	LPZGSLGINFO* ppInfos)
 {
-	LPZGRBLISTNODE pRBListNode = pRbList == ZG_NULL ? ZG_NULL : pRbList->pHead;
+	LPZGRBLISTNODE pRBListNode = pRBList == ZG_NULL ? ZG_NULL : pRBList->pHead;
 	if (pRBListNode == ZG_NULL || pRBListNode->pValue == ZG_NULL)
 		return 0;
 
@@ -219,9 +345,11 @@ ZGUINT ZGSLGRun(
 	if (pTileObject->Instance.pData == ZG_NULL)
 		return 0;
 
-	ZGUINT uFlag = ((PZGUINT)pTileObject->Instance.pData)[ZG_SLG_OBJECT_ATTRIBUTE_FLAG], uDepth = 0;
+	ZGUINT uFlag = (ZGUINT)((PZGLONG)pTileObject->Instance.pData)[ZG_SLG_OBJECT_ATTRIBUTE_FLAG], uDepth = 0;
 	if (ZG_TEST_BIT(uFlag, ZG_SLG_OBJECT_FLAG_AUTO))
 	{
+		sg_pRBList = pRBList;
+
 		uDepth = ZGTileObjectRun(
 			pTileObject,
 			pTileMap,
@@ -230,19 +358,29 @@ ZGUINT ZGSLGRun(
 			uMaxEvaluation,
 			uMaxDistance,
 			uMaxDepth, 
-			ZG_SLG_MAX_BUFFER,
+			ZG_SLG_BUFFER_SIZE,
 			sg_auBuffer,
+			puActionIndex, 
 			__ZGSLGTestAction,
-			__ZGSLGSet);
+			__ZGSLGAction);
 	}
 
-	ZGRBListRemove(pRbList, pRBListNode);
+	ZGRBListRemove(pRBList, pRBListNode);
 	ZGRBListAdd(
-		pRbList, 
+		pRBList,
 		pRBListNode, 
 		pRBListNode->pValue, 
 		(const void*)((ZGLONG)pRBListNode->Instance.pKey + ((PZGLONG)pTileObject->Instance.pData)[ZG_SLG_OBJECT_ATTRIBUTE_COOLDOWN]),
 		ZG_TRUE);
+
+	if (puMapIndex != ZG_NULL)
+		*puMapIndex = sg_uIndex;
+
+	if (puInfoCount != ZG_NULL)
+		*puInfoCount = sg_uCount;
+
+	if (ppInfos != ZG_NULL)
+		*ppInfos = (LPZGSLGINFO)(sg_auBuffer + sg_uOffset);
 
 	return uDepth;
 }

@@ -24,6 +24,7 @@ extern "C" {
 		ZGUINT uMaxDepth,
 		ZGUINT uBufferLength,
 		PZGUINT8 puBuffer,
+		PZGUINT puIndex, 
 		ZGTILEACTIONTEST pfnTileTest,
 		ZGTILEOBJECTSET pfnTileSet);
 #ifdef __cplusplus

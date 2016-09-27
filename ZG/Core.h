@@ -14,5 +14,5 @@ typedef unsigned int ZGUINT, *PZGUINT;
 typedef long long ZGLONG, *PZGLONG;
 
 typedef float ZGFLOAT, *PZGFLOAT;
-
+ 
 typedef unsigned char ZGUINT8, *PZGUINT8;

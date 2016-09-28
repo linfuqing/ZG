@@ -33,19 +33,20 @@ int main()
 	LPZGRBLISTNODE pTemp0;
 	pTemp0 = ZGSLGGetObjectFromQueue(pQueue0);
 	pTemp0 = ZGSLGGetNextFromObject(pTemp0);
-	ZGSLGGetIndexFromObject(pObject1);
+	printf("%d", ZGSLGGetIndexFromObject(pObject1));
 	LPZGNODE pNode0;
 	ZGUINT uActionIndex;
 	ZGUINT uMapIndex;
 	ZGUINT uInfoCount;
 	LPZGSLGINFO pInfos;
-	ZGSLGRun(pQueue0, pMap0, 10, 10, 100, 100, 100, &uActionIndex, &uMapIndex, &uInfoCount, &pInfos);
+	printf("%d", ZGSLGRun(pQueue0, pMap0, 10, 10, 100, 100, 100, ZG_NULL, ZG_NULL, ZG_NULL, ZG_NULL));
 	pNode0 = ZGSLGGetMapNodeFromMap(pMap0, 4);
-	ZGSLGDestroyMap(pMap0);
-	ZGSLGDestroy(pQueue0);
 	ZGSLGDestroy(pObject1);
 	ZGSLGDestroy(pObject0);
+	ZGSLGDestroyMap(pMap0);
+	ZGSLGDestroy(pQueue0);
 	ZGSLGDestroy(pAction0);
+
 
     return _CrtDumpMemoryLeaks();
 }

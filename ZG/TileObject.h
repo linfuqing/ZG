@@ -5,7 +5,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	typedef void (*ZGTILEOBJECTSET)(void* pTileActionData, void* pTileNodeData, ZGUINT uIndex, ZGUINT uCount, LPZGTILENODE* ppTileNodes);
+	typedef void (*ZGTILEOBJECTSET)(void* pTileActionData, void* pTileNodeData, LPZGTILEMAP pTileMap, ZGUINT uIndex, ZGUINT uCount, LPZGTILENODE* ppTileNodes);
 
 	typedef struct ZGTileObject
 	{

@@ -57,6 +57,7 @@ ZGUINT ZGTileObjectRun(
 					pfnObjectSet(
 						pTileAction == ZG_NULL ? ZG_NULL : pTileAction->pData,
 						pTileObject->Instance.pData,
+						pTileMap, 
 						pTileActionMapNode->uMaxIndex,
 						ZG_MIN(pTileActionMapNode->uMaxCount, pTileActionMapNode->uCount),
 						pTileActionMapNode->ppNodes);

@@ -47,7 +47,7 @@ ZGBOOLEAN __ZGSLGTestAction(const void* pTileActionData, const void* pTileNodeDa
 	return ZG_TRUE;
 }
 
-void __ZGSLGAction(void* pTileActionData, void* pTileNodeData, ZGUINT uIndex, ZGUINT uCount, LPZGTILENODE* ppTileNodes)
+void __ZGSLGAction(void* pTileActionData, void* pTileNodeData, LPZGTILEMAP pTileMap, ZGUINT uIndex, ZGUINT uCount, LPZGTILENODE* ppTileNodes)
 {
 	sg_uIndex = uIndex;
 	sg_uOffset = (ZGUINT)((ZGLONG)(ppTileNodes + uCount) - (ZGLONG)sg_auBuffer);
@@ -75,13 +75,17 @@ void __ZGSLGAction(void* pTileActionData, void* pTileNodeData, ZGUINT uIndex, ZG
 
 		lHp = ((PZGLONG)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_HP] += lDamage;
 		if (lHp < 0)
+		{
+			ZGTileNodeUnset(pTileNode, pTileMap);
+
 			ZGRBListRemove(sg_pRBList, pRBListNode);
+		}
 
 		uSize += sizeof(ZGSLGINFO);
 		if (uSize <= uLength)
 		{
 			pInfos->pRBListNode = (LPZGRBLISTNODE)((PZGLONG)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_PARENT];
-			pInfos->lDamage = lDamage;
+			pInfos->lHP = lDamage;
 
 			++pInfos;
 
@@ -309,7 +313,7 @@ ZGBOOLEAN ZGSLGAction(
 		{
 			sg_pRBList = pRBList;
 
-			__ZGSLGAction(pTileAction->pData, pTileObject->Instance.pData, uMapIndex, uLength, ppTileNodes);
+			__ZGSLGAction(pTileAction->pData, pTileObject->Instance.pData, pTileMap, uMapIndex, uLength, ppTileNodes);
 
 			if (puInfoCount != ZG_NULL)
 				*puInfoCount = sg_uCount;

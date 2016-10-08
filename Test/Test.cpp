@@ -6,6 +6,8 @@
 
 int main()
 {
+	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+
 	LPZGTILEMAP pMap0;
 	pMap0 = ZGSLGCreateMap(8, 8, 0);
 	LPZGRBLIST pQueue0;
@@ -32,21 +34,19 @@ int main()
 	ZGSLGMoveObjectToMap(pObject1, pMap0, 4);
 	LPZGRBLISTNODE pTemp0;
 	pTemp0 = ZGSLGGetObjectFromQueue(pQueue0);
-	pTemp0 = ZGSLGGetNextFromObject(pTemp0);
-	printf("%d", ZGSLGGetIndexFromObject(pObject1));
+	ZGSLGGetIndexFromObject(pObject0);
 	LPZGNODE pNode0;
 	ZGUINT uActionIndex;
 	ZGUINT uMapIndex;
 	ZGUINT uInfoCount;
 	LPZGSLGINFO pInfos;
-	printf("%d", ZGSLGRun(pQueue0, pMap0, 10, 10, 100, 100, 100, ZG_NULL, ZG_NULL, ZG_NULL, ZG_NULL));
-	pNode0 = ZGSLGGetMapNodeFromMap(pMap0, 4);
-	ZGSLGDestroy(pObject1);
+	ZGSLGRun(pQueue0, pMap0, 10, 10, 100, 100, 100, &uActionIndex, &uMapIndex, &uInfoCount, &pInfos);
+	pNode0 = ZGSLGGetMapNodeFromMap(pMap0, 0);
+	ZGSLGDestroy(pAction0);
 	ZGSLGDestroy(pObject0);
 	ZGSLGDestroyMap(pMap0);
 	ZGSLGDestroy(pQueue0);
-	ZGSLGDestroy(pAction0);
-
+	ZGSLGDestroy(pObject1);
 
     return _CrtDumpMemoryLeaks();
 }

@@ -38,7 +38,7 @@ extern "C" {
 	typedef struct ZGSLGInfo
 	{
 		LPZGRBLISTNODE pRBListNode;
-		ZGLONG lDamage;
+		ZGLONG lHP;
 	}ZGSLGINFO, * LPZGSLGINFO;
 
 	ZG_SLG_EXPORT void ZGSLGDestroy(void* pData);

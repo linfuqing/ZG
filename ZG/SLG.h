@@ -3,7 +3,7 @@
 #include "TileObject.h"
 
 
-# define ZG_SLG_EXPORT __declspec (dllexport)
+# define ZG_SLG_EXPORT //__declspec (dllexport)
 # define ZG_SLG_ELEMENT_COUNT 2
 
 #ifdef __cplusplus
@@ -29,6 +29,7 @@ extern "C" {
 
 	typedef enum ZGSLGActionAttribute
 	{
+		ZG_SLG_ACTION_ATTRIBUTE_DATA, 
 		ZG_SLG_ACTION_ATTRIBUTE_ATTACK,
 		ZG_SLG_ACTION_ATTRIBUTE_DEFENSE = ZG_SLG_ACTION_ATTRIBUTE_ATTACK + ZG_SLG_ELEMENT_COUNT,
 
@@ -48,10 +49,9 @@ extern "C" {
 		ZGUINT uHeight,
 		ZGUINT uOffset,
 		ZGUINT uTime, 
-		ZGUINT uActionCount,
 		LPZGRBLIST pRBList);
 
-	ZG_SLG_EXPORT LPZGTILEACTION ZGSLGCreateAction(
+	ZG_SLG_EXPORT LPZGTILEOBJECTACTION ZGSLGCreateAction(
 		ZGUINT uDistance,
 		ZGUINT uRange);
 
@@ -67,13 +67,15 @@ extern "C" {
 
 	ZG_SLG_EXPORT ZGBOOLEAN ZGSLGMoveObjectToMap(LPZGRBLISTNODE pRBListNode, LPZGTILEMAP pTileMap, ZGUINT uIndex);
 
-	ZG_SLG_EXPORT ZGUINT ZGSLGSearch(LPZGRBLISTNODE pRBListNode, LPZGTILEMAP pTileMap, ZGUINT uIndex);
+	ZG_SLG_EXPORT ZGUINT ZGSLGSearchDepth(const ZGRBLISTNODE* pRBListNode, LPZGTILEMAP pTileMap, ZGUINT uIndex);
+
+	ZG_SLG_EXPORT ZGUINT ZGSLGSearchBreadth(const ZGRBLISTNODE* pRBListNode, LPZGTILEMAP pTileMap, PZGUINT* ppIndices);
 
 	ZG_SLG_EXPORT ZGBOOLEAN ZGSLGAction(
+		LPZGTILEOBJECTACTION pTileObjectAction,
 		LPZGRBLISTNODE pRBListNode,
 		LPZGTILEMAP pTileMap,
 		LPZGRBLIST pRBList,
-		ZGUINT uActionIndex,
 		ZGUINT uMapIndex,
 		PZGUINT puInfoCount,
 		LPZGSLGINFO* ppInfos);
@@ -81,12 +83,7 @@ extern "C" {
 	ZG_SLG_EXPORT ZGUINT ZGSLGRun(
 		LPZGRBLIST pRbList,
 		LPZGTILEMAP pTileMap,
-		ZGUINT uEvaluation,
-		ZGUINT uMinEvaluation,
-		ZGUINT uMaxEvaluation,
-		ZGUINT uMaxDistance,
-		ZGUINT uMaxDepth, 
-		PZGUINT puActionIndex,
+		PZGUINT puData,
 		PZGUINT puMapIndex,
 		PZGUINT puInfoCount,
 		LPZGSLGINFO* ppInfos);
@@ -136,7 +133,11 @@ extern "C" {
 		if (pRBListNode == ZG_NULL || pRBListNode->pValue == ZG_NULL)
 			return;
 
-		((LPZGTILEOBJECT)pRBListNode->pValue)->Instance.uDistance = uDistance;
+		LPZGTILEOBJECT pTileObject = (LPZGTILEOBJECT)pRBListNode->pValue;
+		if (pTileObject->Instance.pInstance == ZG_NULL)
+			return;
+
+		pTileObject->Instance.pInstance->uDistance = uDistance;
 	}
 
 	ZG_SLG_EXPORT void ZGSLGSetRangeToObject(LPZGRBLISTNODE pRBListNode, ZGUINT uRange)
@@ -144,7 +145,11 @@ extern "C" {
 		if (pRBListNode == ZG_NULL || pRBListNode->pValue == ZG_NULL)
 			return;
 
-		((LPZGTILEOBJECT)pRBListNode->pValue)->Instance.uRange = uRange;
+		LPZGTILEOBJECT pTileObject = (LPZGTILEOBJECT)pRBListNode->pValue;
+		if (pTileObject->Instance.pInstance == ZG_NULL)
+			return;
+
+		pTileObject->Instance.pInstance->uRange = uRange;
 	}
 
 	ZG_SLG_EXPORT void ZGSLGSetAttributeToObjectUINT(LPZGRBLISTNODE pRBListNode, ZGUINT uAttribute, ZGUINT uValue)
@@ -159,16 +164,13 @@ extern "C" {
 		((PZGLONG)pTileObject->Instance.pData)[uAttribute] = uValue;
 	}
 
-	ZG_SLG_EXPORT ZGBOOLEAN ZGSLGSetActionToObject(LPZGRBLISTNODE pRBListNode, LPZGTILEACTION pAction, ZGUINT uIndex)
+	ZG_SLG_EXPORT ZGBOOLEAN ZGSLGSetActionsToObject(LPZGRBLISTNODE pRBListNode, LPZGTILEOBJECTACTION pActions)
 	{
 		if (pRBListNode == ZG_NULL || pRBListNode->pValue == ZG_NULL)
 			return ZG_FALSE;
 
 		LPZGTILEOBJECT pTileObject = (LPZGTILEOBJECT)(pRBListNode->pValue);
-		if (pTileObject->uActionCount <= uIndex)
-			return ZG_FALSE;
-
-		pTileObject->ppActions[uIndex] = pAction;
+		pTileObject->pActions = pActions;
 
 		return ZG_TRUE;
 	}

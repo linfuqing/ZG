@@ -54,6 +54,12 @@
     <ClInclude Include="TileObject.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="RTS.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TileManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BitFlag.c">
@@ -84,6 +90,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TileObject.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="RTS.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TileManager.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

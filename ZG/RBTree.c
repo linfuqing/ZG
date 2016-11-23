@@ -1,6 +1,6 @@
 #include "RBTree.h"
 
-inline ZGBOOLEAN __ZGRBTreeLeftRotate(LPZGRBTREENODE pNode, LPZGRBTREENODE* ppRoot)
+ZG_INLINE ZGBOOLEAN __ZGRBTreeLeftRotate(LPZGRBTREENODE pNode, LPZGRBTREENODE* ppRoot)
 {
 	if (pNode == ZG_NULL || pNode->pRightChild == ZG_NULL)
 		return ZG_NULL;
@@ -34,7 +34,7 @@ inline ZGBOOLEAN __ZGRBTreeLeftRotate(LPZGRBTREENODE pNode, LPZGRBTREENODE* ppRo
 	return ZG_TRUE;
 }
 
-inline ZGBOOLEAN __ZGRBTreeRightRotate(LPZGRBTREENODE pNode, LPZGRBTREENODE* ppRoot)
+ZG_INLINE ZGBOOLEAN __ZGRBTreeRightRotate(LPZGRBTREENODE pNode, LPZGRBTREENODE* ppRoot)
 {
 	if (pNode->pLeftChild == ZG_NULL)
 		return ZG_FALSE;

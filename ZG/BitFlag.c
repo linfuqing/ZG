@@ -1,7 +1,7 @@
 #include "BitFlag.h"
 #include "Math.h"
 
-inline ZGUINT8 __ZGBitFlagGetFlag(PZGUINT8 puFlags, ZGUINT uIndex, ZGUINT uCount)
+ZG_INLINE ZGUINT8 __ZGBitFlagGetFlag(PZGUINT8 puFlags, ZGUINT uIndex, ZGUINT uCount)
 {
 	ZGUINT uTemp = uIndex << 3;
 	if (uTemp < uCount)
@@ -22,8 +22,8 @@ ZGUINT ZGBitFlagMinBit(const ZGBITFLAG* pBitFlag)
 	if (uFlag > 0)
 		return ZGMininumBit8(uFlag);
 
-	ZGUINT uLength = (uCount + 7) >> 3;
-	for (ZGUINT i = uOffset + 1; i < uLength; ++i)
+	ZGUINT uLength = (uCount + 7) >> 3, i;
+	for (i = uOffset + 1; i < uLength; ++i)
 	{
 		uFlag = __ZGBitFlagGetFlag(pBitFlag->puFlags, i, uCount);
 		if (uFlag > 0)
@@ -53,10 +53,12 @@ ZGUINT ZGBitFlagIndexOf(const ZGBITFLAG* pSource, const ZGBITFLAG* pDestination)
 	if (uFlag > 0)
 		return ZGMininumBit8(uFlag);
 
-	ZGUINT uOffset = uSourceShift > uDestinationShift ? uSourceShift - uDestinationShift : uDestinationShift - uSourceShift;
+	ZGUINT uOffset = uSourceShift > uDestinationShift ? uSourceShift - uDestinationShift : uDestinationShift - uSourceShift, 
+		uSourceOffset, 
+		uDestinationOffset;
 	if (uSourceShift > uDestinationShift)
 	{
-		for (ZGUINT uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
+		for (uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
 			uSourceOffset < uSourceCount && uDestinationOffset < uDestinationCount;
 			uSourceOffset += 8, uDestinationOffset += 8)
 		{
@@ -73,7 +75,7 @@ ZGUINT ZGBitFlagIndexOf(const ZGBITFLAG* pSource, const ZGBITFLAG* pDestination)
 	}
 	else if (uSourceShift < uDestinationShift)
 	{
-		for (ZGUINT uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
+		for (uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
 			uSourceOffset < uSourceCount && uDestinationOffset < uDestinationCount;
 			uSourceOffset += 8, uDestinationOffset += 8)
 		{
@@ -90,7 +92,7 @@ ZGUINT ZGBitFlagIndexOf(const ZGBITFLAG* pSource, const ZGBITFLAG* pDestination)
 	}
 	else
 	{
-		for (ZGUINT uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
+		for (uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
 			uSourceOffset < uSourceCount && uDestinationOffset < uDestinationCount;
 			uSourceOffset += 8, uDestinationOffset += 8)
 		{
@@ -136,10 +138,12 @@ void ZGBitFlagAssign(LPZGBITFLAG pSource, const ZGBITFLAG* pDestination, ZGBOOLE
 	}
 
 	ZGUINT uOffset = uSourceShift > uDestinationShift ? uSourceShift - uDestinationShift : uDestinationShift - uSourceShift,
-		uSourceCount = pSource->uOffset + pSource->uCount;
+		uSourceCount = pSource->uOffset + pSource->uCount, 
+		uSourceOffset,
+		uDestinationOffset;
 	if (uSourceShift > uDestinationShift)
 	{
-		for (ZGUINT uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
+		for (uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
 			uSourceOffset < uSourceCount && uDestinationOffset < uDestinationCount;
 			uSourceOffset += 8, uDestinationOffset += 8)
 		{
@@ -172,7 +176,7 @@ void ZGBitFlagAssign(LPZGBITFLAG pSource, const ZGBITFLAG* pDestination, ZGBOOLE
 	}
 	else if (uSourceShift < uDestinationShift)
 	{
-		for (ZGUINT uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
+		for (uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
 			uSourceOffset < uSourceCount && uDestinationOffset < uDestinationCount;
 			uSourceOffset += 8, uDestinationOffset += 8)
 		{
@@ -204,7 +208,7 @@ void ZGBitFlagAssign(LPZGBITFLAG pSource, const ZGBITFLAG* pDestination, ZGBOOLE
 	}
 	else
 	{
-		for (ZGUINT uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
+		for (uSourceOffset = pSource->uOffset + 8, uDestinationOffset = pDestination->uOffset + 8;
 			uSourceOffset < uSourceCount && uDestinationOffset < uDestinationCount;
 			uSourceOffset += 8, uDestinationOffset += 8)
 		{

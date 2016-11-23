@@ -11,14 +11,16 @@ extern "C" {
 		ZGUINT uPitch;
 	}ZGMAP, *LPZGMAP;
 
-	inline ZGBOOLEAN ZGMapGet(const ZGMAP* pMap, ZGUINT uIndex)
+	typedef ZGBOOLEAN(*ZGMAPTEST)(LPZGMAP pMap, ZGUINT uIndex);
+
+	ZG_INLINE ZGBOOLEAN ZGMapGet(const ZGMAP* pMap, ZGUINT uIndex)
 	{
 		return ZGBitFlagGet(&pMap->Instance, uIndex);
 	}
 
-	inline void ZGMapSet(const ZGMAP* pMap, ZGUINT uIndex, ZGBOOLEAN bValue)
+	ZG_INLINE ZGBOOLEAN ZGMapSet(const ZGMAP* pMap, ZGUINT uIndex, ZGBOOLEAN bValue)
 	{
-		ZGBitFlagSet(&pMap->Instance, uIndex, bValue);
+		return ZGBitFlagSet(&pMap->Instance, uIndex, bValue);
 	}
 
 	ZGBOOLEAN ZGMapTest(
@@ -28,6 +30,13 @@ extern "C" {
 		ZGUINT uOffset,
 		PZGUINT puCount,
 		PZGUINT puIndices);
+
+	ZGBOOLEAN ZGMapVisit(
+		LPZGMAP pSource,
+		const ZGMAP* pDestination,
+		ZGUINT uIndex,
+		ZGUINT uOffset,
+		ZGMAPTEST pfnTest);
 
 	void ZGMapAssign(
 		LPZGMAP pSource, 

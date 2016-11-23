@@ -5,13 +5,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	typedef ZGBOOLEAN (*ZGTILENODETEST)(const void* pTileNodeData, const ZGTILERANGE* pTileRange, LPZGTILEMAP pTileMap, ZGUINT uIndex);
-
-	typedef struct ZGTileNode
+	typedef struct ZGTileNodeData
 	{
 		ZGTILERANGE Instance;
 		ZGUINT uDistance;
 		ZGUINT uRange;
+	}ZGTILENODEDATA, *LPZGTILENODEDATA;
+
+	typedef struct ZGTileNode
+	{
+		LPZGTILENODEDATA pInstance;
 
 		ZGUINT uIndex;
 
@@ -27,7 +30,7 @@ extern "C" {
 		void* pData;
 	}ZGTILENODEMAPNODE, *LPZGTILENODEMAPNODE;
 
-	inline ZGUINT ZGTilePredicate(const void* x, const void* y)
+	ZG_INLINE ZGUINT ZGTilePredicate(const void* x, const void* y)
 	{
 		const ZGTILENODEMAPNODE* pTemp = (const ZGTILENODEMAPNODE*)((const ZGTILEMAPNODE*)x)->pData;
 
@@ -43,12 +46,18 @@ extern "C" {
 		LPZGTILEMAP pTileMap,
 		ZGUINT uIndex);
 
-	ZGUINT ZGTileNodeSearch(
+	ZGUINT ZGTileNodeSearchDepth(
 		const ZGTILENODE* pTileNode,
 		LPZGTILEMAP pTileMap,
 		ZGBOOLEAN bIsTest,
 		ZGUINT uIndex, 
-		ZGTILENODETEST pfnTest);
+		ZGMAPTEST pfnMapTest);
+
+	ZGUINT ZGTileNodeSearchBreadth(
+		const ZGTILENODE* pTileNode,
+		LPZGTILEMAP pTileMap,
+		ZGMAPTEST pfnMapTest,
+		ZGTILEMAPTEST pfnTileMapTest);
 #ifdef __cplusplus
 }
 #endif

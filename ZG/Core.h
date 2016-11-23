@@ -1,5 +1,6 @@
 #pragma once
 
+#define ZG_INLINE static inline
 #define ZG_NULL 0
 
 #define ZG_TRUE 1

@@ -16,7 +16,7 @@ extern "C" {
 	}ZGBITFLAG, *LPZGBITFLAG;
 
 	//const ZGUINT8 g_MAXINUM_BIT_TABLE[];
-	inline ZGUINT8 ZGMininumBit8(ZGUINT uFlag)
+	ZG_INLINE ZGUINT8 ZGMininumBit8(ZGUINT uFlag)
 	{
 		static const ZGUINT8 s_uMININUM_BIT_TABLE[] =
 		{
@@ -33,7 +33,7 @@ extern "C" {
 		return s_uMININUM_BIT_TABLE[uFlag];
 	}
 
-	inline ZGUINT8 ZGMaxinumBit8(ZGUINT uFlag)
+	ZG_INLINE ZGUINT8 ZGMaxinumBit8(ZGUINT uFlag)
 	{
 		static const ZGUINT8 s_uMAXINUM_BIT_TABLE[] =
 		{
@@ -50,19 +50,21 @@ extern "C" {
 		return s_uMAXINUM_BIT_TABLE[uFlag];
 	}
 
-	inline void ZGBitFlagSet(const ZGBITFLAG* pBitFlag, ZGUINT uIndex, ZGBOOLEAN bValue)
+	ZG_INLINE ZGBOOLEAN ZGBitFlagSet(const ZGBITFLAG* pBitFlag, ZGUINT uIndex, ZGBOOLEAN bValue)
 	{
 		if (pBitFlag == ZG_NULL || pBitFlag->uCount <= uIndex)
-			return;
+			return ZG_FALSE;
 
 		uIndex += pBitFlag->uOffset;
 		if(bValue)
 			pBitFlag->puFlags[uIndex >> 3] |= 1 << (uIndex & 7);
 		else
 			pBitFlag->puFlags[uIndex >> 3] &= ~(1 << (uIndex & 7));
+
+		return ZG_TRUE;
 	}
 
-	inline ZGBOOLEAN ZGBitFlagGet(const ZGBITFLAG* pBitFlag, ZGUINT uIndex)
+	ZG_INLINE ZGBOOLEAN ZGBitFlagGet(const ZGBITFLAG* pBitFlag, ZGUINT uIndex)
 	{
 		if (pBitFlag == ZG_NULL || pBitFlag->uCount <= uIndex)
 			return ZG_FALSE;

@@ -27,7 +27,7 @@ extern "C" {
 
 	typedef ZGBOOLEAN(*ZGTILEMAPTEST)(LPZGTILEMAP pTileMap, const ZGTILERANGE* pTileRange, ZGUINT uIndex);
 
-	inline ZGUINT ZGTileConvert(
+	ZG_INLINE ZGUINT ZGTileConvert(
 		ZGUINT uSourcePitch,
 		ZGUINT uSourceIndex, 
 		ZGUINT uDestinationPitch, 
@@ -45,7 +45,7 @@ extern "C" {
 		return x - uOffsetX + (y - uOffsetY) * uSourcePitch + 1;
 	}
 
-	inline ZGUINT ZGTileChildCount(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
+	ZG_INLINE ZGUINT ZGTileChildCount(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
 	{
 		if (uWidth < 1 || uHeight < 1)
 			return 0;
@@ -70,15 +70,15 @@ extern "C" {
 		return (uCorner << 2) + uEdge * ((uWidth + uHeight - 4) << 1) + uNormal * (uWidth - 1) * (uHeight - 1);
 	}
 
-	inline void ZGTileMapSet(const ZGTILEMAP* pTileMap, ZGUINT uIndex, ZGBOOLEAN bValue)
+	ZG_INLINE ZGBOOLEAN ZGTileMapSet(const ZGTILEMAP* pTileMap, ZGUINT uIndex, ZGBOOLEAN bValue)
 	{
 		if (pTileMap == ZG_NULL)
-			return;
+			return ZG_FALSE;
 
-		ZGMapSet(&pTileMap->Instance, uIndex, bValue);
+		return ZGMapSet(&pTileMap->Instance, uIndex, bValue);
 	}
 
-	inline ZGBOOLEAN ZGTileMapGet(const ZGTILEMAP* pTileMap, ZGUINT uIndex)
+	ZG_INLINE ZGBOOLEAN ZGTileMapGet(const ZGTILEMAP* pTileMap, ZGUINT uIndex)
 	{
 		if (pTileMap == ZG_NULL)
 			return ZG_FALSE;
@@ -86,7 +86,7 @@ extern "C" {
 		return ZGMapGet(&pTileMap->Instance, uIndex);
 	}
 
-	inline void ZGTileMapSetData(const ZGTILEMAP* pTileMap, ZGUINT uIndex, void* pData)
+	ZG_INLINE void ZGTileMapSetData(const ZGTILEMAP* pTileMap, ZGUINT uIndex, void* pData)
 	{
 		if (pTileMap == ZG_NULL || pTileMap->Instance.Instance.uCount <= uIndex)
 			return;
@@ -94,7 +94,7 @@ extern "C" {
 		((LPZGTILEMAPNODE)(pTileMap->pNodes + uIndex)->pData)->pData = pData;
 	}
 
-	inline void* ZGTileMapGetData(const ZGTILEMAP* pTileMap, ZGUINT uIndex)
+	ZG_INLINE void* ZGTileMapGetData(const ZGTILEMAP* pTileMap, ZGUINT uIndex)
 	{
 		if (pTileMap == ZG_NULL || pTileMap->Instance.Instance.uCount <= uIndex)
 			return ZG_NULL;
@@ -104,7 +104,7 @@ extern "C" {
 
 	void ZGTileRangeInitOblique(LPZGTILERANGE pRange, PZGUINT8 puFlags, ZGUINT uSize);
 
-	ZGUINT ZGTileMapSearch(
+	ZGUINT ZGTileMapSearchDepth(
 		LPZGTILEMAP pTileMap,
 		const ZGTILERANGE* pTileRange,
 		ZGBOOLEAN bIsTest,
@@ -113,7 +113,17 @@ extern "C" {
 		ZGUINT uMaxDepth,
 		ZGUINT uMaxDistance,
 		ZGNODEPREDICATION pfnPredication, 
-		ZGTILEMAPTEST pfnTest);
+		ZGMAPTEST pfnMapTest);
+
+	ZGUINT ZGTileMapSearchBreadth(
+		LPZGTILEMAP pTileMap,
+		const ZGTILERANGE* pTileRange,
+		ZGUINT uIndex,
+		ZGUINT uMaxDepth,
+		ZGUINT uMaxDistance,
+		ZGNODEPREDICATION pfnPredication,
+		ZGMAPTEST pfnMapTest,
+		ZGTILEMAPTEST pfnTileMapTest);
 
 	void ZGTileMapEnable(
 		LPZGTILEMAP pTileMap,

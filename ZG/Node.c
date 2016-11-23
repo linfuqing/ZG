@@ -30,7 +30,8 @@ ZGUINT __ZGNodeSearch(
 		{
 			ZGUINT uDepth = pNode->uDepth + 1, uDistance;
 			LPZGNODE pChild;
-			for(ZGUINT i = 0; i < pNode->uCount; ++ i)
+			ZGUINT i;
+			for(i = 0; i < pNode->uCount; ++ i)
 			{
 				pChild = pNode->ppChildren[i];
 				if (pChild != ZG_NULL)
@@ -52,25 +53,25 @@ ZGUINT __ZGNodeSearch(
 
 					if (pChild->uDepth < uMinDepth)
 					{
-						if (pChild->pList == ZG_NULL)
-							pChild->uEvaluation = pfnEvaluation(pChild->pData);
-						else
+						uDistance = pChild->uDistance + pNode->uValue;
+						if (uDistance < uMaxDistance)
 						{
-							pChild->pList = ZG_NULL;
-
-							ZGRBListRemove(pChild->pList, &pChild->Instance);
-						}
-
-						if (pChild->uEvaluation < uMaxEvaluation)
-						{
-							//pChild->uValue = pChild->uDistance + pNode->uValue;
-							uDistance = pChild->uDistance + pNode->uValue;
-
-							if (uDistance < uMaxDistance)
+							if (pChild->pList == ZG_NULL)
+								pChild->uEvaluation = pfnEvaluation(pChild->pData);
+							else
 							{
+								pChild->pList = ZG_NULL;
+
+								ZGRBListRemove(pChild->pList, &pChild->Instance);
+							}
+
+							if (pChild->uEvaluation < uMaxEvaluation)
+							{
+								//pChild->uValue = pChild->uDistance + pNode->uValue;
+
 								pChild->pList = pList;
 
-								ZGRBListAdd(pList, &pChild->Instance, pChild, (void*)(uDistance + pChild->uEvaluation), ZG_TRUE);
+								ZGRBListAdd(pList, &pChild->Instance, pChild, (void*)(ZGLONG)(uDistance + pChild->uEvaluation), ZG_TRUE);
 							}
 						}
 					}
@@ -208,7 +209,8 @@ ZGUINT ZGNodeSearch(
 	{
 		s_uMinDepth = 1;
 
-		for (LPZGNODE pTemp = sg_pHead; pTemp != ZG_NULL; pTemp = pTemp->pForward)
+		LPZGNODE pTemp;
+		for (pTemp = sg_pHead; pTemp != ZG_NULL; pTemp = pTemp->pForward)
 			pTemp->uDepth = 0;
 	}
 
@@ -222,7 +224,8 @@ ZGUINT ZGNodeSearch(
 
 	if (s_bIsCreate)
 	{
-		for (LPZGRBLISTNODE pNode = s_List.pHead; pNode != ZG_NULL; pNode = ZGRBListNodeNext(pNode))
+		LPZGRBLISTNODE pNode;
+		for (pNode = s_List.pHead; pNode != ZG_NULL; pNode = ZGRBListNodeNext(pNode))
 		{
 			if (pNode->pValue != ZG_NULL)
 				((LPZGNODE)pNode->pValue)->pList = ZG_NULL;
@@ -266,7 +269,7 @@ ZGUINT ZGNodeSearch(
 		uMaxDistance, 
 		uMaxDepth, 
 		&s_uMinDepth);
-	return uDepth > uMaxDepth ? 0 : (uDepth - pNode->uDepth);
+	return uDepth > uMaxDepth ? 0 : (uDepth - pNode->uDepth + 1);
 }
 
 void ZGNodeEnable(LPZGNODE pNode)

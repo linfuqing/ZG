@@ -1,21 +1,5 @@
 #include "TileNode.h"
 
-static const ZGTILERANGE* sg_pTileRange;
-static const void* sg_pTileNodeData;
-ZGTILENODETEST sg_pfnTest;
-
-ZGBOOLEAN __ZGTileNodeTest(LPZGTILEMAP pTileMap, const ZGTILERANGE* pTileRange, ZGUINT uIndex)
-{
-	return sg_pfnTest == ZG_NULL ? ZGMapTest(
-		&pTileMap->Instance, 
-		&sg_pTileRange->Instance, 
-		uIndex, 
-		sg_pTileRange->uOffset, 
-		ZG_NULL, 
-		ZG_NULL) : 
-		sg_pfnTest(sg_pTileNodeData, pTileRange, pTileMap, uIndex);
-}
-
 ZGBOOLEAN ZGTileNodeUnset(
 	LPZGTILENODE pTileNode,
 	LPZGTILEMAP pTileMap)
@@ -23,22 +7,22 @@ ZGBOOLEAN ZGTileNodeUnset(
 	if (pTileNode == ZG_NULL || pTileMap == ZG_NULL)
 		return ZG_FALSE;
 
-	if (pTileNode->uIndex >= pTileMap->Instance.Instance.uCount)
+	if (pTileNode->pInstance == ZG_NULL || pTileNode->uIndex >= pTileMap->Instance.Instance.uCount)
 		return ZG_FALSE;
 
 	ZGMapAssign(
 		&pTileMap->Instance,
-		&pTileNode->Instance.Instance,
+		&pTileNode->pInstance->Instance.Instance,
 		pTileNode->uIndex,
-		pTileNode->Instance.uOffset,
+		pTileNode->pInstance->Instance.uOffset,
 		ZG_FALSE);
 
-	ZGUINT uMaxNodeX = pTileNode->Instance.Instance.uPitch - 1,
-		uMaxNodeY = pTileNode->Instance.Instance.Instance.uCount / pTileNode->Instance.Instance.uPitch - 1,
+	ZGUINT uMaxNodeX = pTileNode->pInstance->Instance.Instance.uPitch - 1,
+		uMaxNodeY = pTileNode->pInstance->Instance.Instance.Instance.uCount / pTileNode->pInstance->Instance.Instance.uPitch - 1,
 		uMaxMapX = pTileMap->Instance.uPitch - 1,
 		uMaxMapY = pTileMap->Instance.Instance.uCount / pTileMap->Instance.uPitch - 1,
-		uNodeX = pTileNode->Instance.uOffset % pTileNode->Instance.Instance.uPitch,
-		uNodeY = pTileNode->Instance.uOffset / pTileNode->Instance.Instance.uPitch,
+		uNodeX = pTileNode->pInstance->Instance.uOffset % pTileNode->pInstance->Instance.Instance.uPitch,
+		uNodeY = pTileNode->pInstance->Instance.uOffset / pTileNode->pInstance->Instance.Instance.uPitch,
 		uMapX = pTileNode->uIndex % pTileMap->Instance.uPitch,
 		uMapY = pTileNode->uIndex / pTileMap->Instance.uPitch,
 		uToX = uMapX + uMaxNodeX - uNodeX,
@@ -51,9 +35,9 @@ ZGBOOLEAN ZGTileNodeUnset(
 	uToY = uToY > uMaxMapY ? uMaxNodeY + uMaxMapY - uToY : uMaxNodeY;
 	for (i = uFromX; i <= uToX; ++i)
 	{
-		for (j = uFromX; j <= uToY; ++j)
+		for (j = uFromY; j <= uToY; ++j)
 		{
-			if (ZGMapGet(&pTileNode->Instance.Instance, i + j * pTileNode->Instance.Instance.uPitch))
+			if (ZGMapGet(&pTileNode->pInstance->Instance.Instance, i + j * pTileNode->pInstance->Instance.Instance.uPitch))
 				((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, (i + uMapX - uNodeX) + (j + uMapY - uNodeY) * pTileMap->Instance.uPitch))->pNode = ZG_NULL;
 		}
 	}
@@ -71,24 +55,24 @@ ZGBOOLEAN ZGTileNodeSetTo(
 	if (pTileNode == ZG_NULL || pTileMap == ZG_NULL)
 		return ZG_FALSE;
 
-	if (uIndex >= pTileMap->Instance.Instance.uCount)
+	if (pTileNode->pInstance == ZG_NULL || uIndex >= pTileMap->Instance.Instance.uCount)
 		return ZG_FALSE;
 
 	ZGTileNodeUnset(pTileNode, pTileMap);
 
 	ZGMapAssign(
 		&pTileMap->Instance,
-		&pTileNode->Instance.Instance,
+		&pTileNode->pInstance->Instance.Instance,
 		uIndex,
-		pTileNode->Instance.uOffset,
+		pTileNode->pInstance->Instance.uOffset,
 		ZG_TRUE);
 
-	ZGUINT uMaxNodeX = pTileNode->Instance.Instance.uPitch - 1,
-		uMaxNodeY = pTileNode->Instance.Instance.Instance.uCount / pTileNode->Instance.Instance.uPitch - 1,
+	ZGUINT uMaxNodeX = pTileNode->pInstance->Instance.Instance.uPitch - 1,
+		uMaxNodeY = pTileNode->pInstance->Instance.Instance.Instance.uCount / pTileNode->pInstance->Instance.Instance.uPitch - 1,
 		uMaxMapX = pTileMap->Instance.uPitch - 1,
 		uMaxMapY = pTileMap->Instance.Instance.uCount / pTileMap->Instance.uPitch - 1,
-		uNodeX = pTileNode->Instance.uOffset % pTileNode->Instance.Instance.uPitch,
-		uNodeY = pTileNode->Instance.uOffset / pTileNode->Instance.Instance.uPitch,
+		uNodeX = pTileNode->pInstance->Instance.uOffset % pTileNode->pInstance->Instance.Instance.uPitch,
+		uNodeY = pTileNode->pInstance->Instance.uOffset / pTileNode->pInstance->Instance.Instance.uPitch,
 		uMapX = uIndex % pTileMap->Instance.uPitch,
 		uMapY = uIndex / pTileMap->Instance.uPitch,
 		uToX = uMapX + uMaxNodeX - uNodeX,
@@ -101,9 +85,9 @@ ZGBOOLEAN ZGTileNodeSetTo(
 	uToY = uToY > uMaxMapY ? uMaxNodeY + uMaxMapY - uToY : uMaxNodeY;
 	for (i = uFromX; i <= uToX; ++i)
 	{
-		for (j = uFromX; j <= uToY; ++j)
+		for (j = uFromY; j <= uToY; ++j)
 		{
-			if (ZGMapGet(&pTileNode->Instance.Instance, i + j * pTileNode->Instance.Instance.uPitch))
+			if (ZGMapGet(&pTileNode->pInstance->Instance.Instance, i + j * pTileNode->pInstance->Instance.Instance.uPitch))
 				((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, (i + uMapX - uNodeX) + (j + uMapY - uNodeY) * pTileMap->Instance.uPitch))->pNode = pTileNode;
 		}
 	}
@@ -113,28 +97,47 @@ ZGBOOLEAN ZGTileNodeSetTo(
 	return ZG_TRUE;
 }
 
-ZGUINT ZGTileNodeSearch(
+ZGUINT ZGTileNodeSearchDepth(
 	const ZGTILENODE* pTileNode,
 	LPZGTILEMAP pTileMap,
 	ZGBOOLEAN bIsTest,
 	ZGUINT uIndex, 
-	ZGTILENODETEST pfnTest)
+	ZGMAPTEST pfnMapTest)
 {
 	if (pTileNode == ZG_NULL || pTileMap == ZG_NULL)
 		return 0;
 
-	sg_pTileRange = &pTileNode->Instance;
-	sg_pTileNodeData = pTileNode->pData;
-	sg_pfnTest = pfnTest;
+	if (pTileNode->pInstance == ZG_NULL)
+		return 0;
 
-	return ZGTileMapSearch(
+	return ZGTileMapSearchDepth(
 		pTileMap,
-		&pTileNode->Instance,
+		&pTileNode->pInstance->Instance,
 		bIsTest, 
 		pTileNode->uIndex,
 		uIndex,
-		pTileNode->uRange,
-		pTileNode->uDistance,
+		pTileNode->pInstance->uRange,
+		pTileNode->pInstance->uDistance,
 		ZGTilePredicate, 
-		__ZGTileNodeTest);
+		pfnMapTest);
+}
+
+ZGUINT ZGTileNodeSearchBreadth(
+	const ZGTILENODE* pTileNode,
+	LPZGTILEMAP pTileMap,
+	ZGMAPTEST pfnMapTest, 
+	ZGTILEMAPTEST pfnTileMapTest)
+{
+	if (pTileNode == ZG_NULL || pTileMap == ZG_NULL)
+		return 0;
+
+	return ZGTileMapSearchBreadth(
+		pTileMap,
+		&pTileNode->pInstance->Instance,
+		pTileNode->uIndex,
+		pTileNode->pInstance->uRange,
+		pTileNode->pInstance->uDistance,
+		ZGTilePredicate,
+		pfnMapTest, 
+		pfnTileMapTest);
 }

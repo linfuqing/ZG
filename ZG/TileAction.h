@@ -5,8 +5,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	typedef ZGBOOLEAN (*ZGTILEACTIONTEST)(const void* pTileActionData, const void* pTileNodeData, const LPZGTILENODE* ppTileNodes, ZGUINT uNodeCount);
-	typedef ZGBOOLEAN (*ZGTILEACTIONANALYZATION)(const void* pTileActionData, const void* pSourceTileNodeData, const void* pDestinationTileNodeData);
+	typedef ZGBOOLEAN (*ZGTILEACTIONTEST)(const void* pTileNodeData, const LPZGTILENODE* ppTileNodes, ZGUINT uNodeCount);
+	typedef ZGBOOLEAN (*ZGTILEACTIONANALYZATION)(const void* pSourceTileNodeData, const void* pDestinationTileNodeData);
 
 	typedef struct ZGTileActionMapNode
 	{
@@ -18,12 +18,21 @@ extern "C" {
 		void* pData;
 	}ZGTILEACTIONMAPNODE, *LPZGTILEACTIONMAPNODE;
 
-	typedef struct ZGTileAction
+	typedef struct ZGTileActionData
 	{
 		ZGTILERANGE Instance;
 		ZGTILERANGE Distance;
+	}ZGTILEACTIONDATA, *LPZGTILEACTIONDATA;
 
-		void* pData;
+	typedef struct ZGTileAction
+	{
+		LPZGTILEACTIONDATA pInstance;
+
+		ZGUINT uEvaluation;
+		ZGUINT uMinEvaluation;
+		ZGUINT uMaxEvaluation;
+		ZGUINT uMaxDistance;
+		ZGUINT uMaxDepth;
 
 		ZGTILEACTIONANALYZATION pfnAnalyzation;
 	}ZGTILEACTION, *LPZGTILEACTION;
@@ -32,11 +41,6 @@ extern "C" {
 		const ZGTILEACTION* pTileAction,
 		const ZGTILENODE* pTileNode,
 		LPZGTILEMAP pTileMap,
-		ZGUINT uEvaluation,
-		ZGUINT uMinEvaluation,
-		ZGUINT uMaxEvaluation,
-		ZGUINT uMaxDistance,
-		ZGUINT uMaxDepth,
 		ZGUINT uBufferLength,
 		PZGUINT8 puBuffer,
 		ZGTILEACTIONTEST pfnTileActionTest);

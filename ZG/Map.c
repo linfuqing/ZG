@@ -75,6 +75,69 @@ ZGBOOLEAN ZGMapTest(
 	return uResult > 0;
 }
 
+ZGBOOLEAN ZGMapVisit(
+	LPZGMAP pSource,
+	const ZGMAP* pDestination,
+	ZGUINT uIndex,
+	ZGUINT uOffset,
+	ZGMAPTEST pfnTest)
+{
+	if (pSource == ZG_NULL || pDestination == ZG_NULL)
+		return 0;
+
+	uIndex += pSource->Instance.uOffset;
+	uOffset += pDestination->Instance.uOffset;
+
+	ZGUINT uSourceX = uIndex % pSource->uPitch,
+		uSourceY = uIndex / pSource->uPitch,
+		uDestinationX = uOffset % pDestination->uPitch,
+		uDestinationY = uOffset / pDestination->uPitch,
+		x = uSourceX > uDestinationX ? uSourceX - uDestinationX : 0,
+		y = uSourceY > uDestinationY ? uSourceY - uDestinationY : 0,
+		uMinX = uDestinationX - (uSourceX - x),
+		uMinY = uDestinationY - (uSourceY - y),
+		uPitch = pDestination->uPitch - uMinX,
+		uSourceOffset = pSource->Instance.uOffset + x + y * pSource->uPitch,
+		uDestinationOffset = pDestination->Instance.uOffset + uMinX + uMinY * pDestination->uPitch;
+
+	uPitch = ZG_MIN(pSource->uPitch, uPitch);
+	ZGBITFLAG Source, Destination;
+	Source.puFlags = pSource->Instance.puFlags;
+	Destination.puFlags = pDestination->Instance.puFlags;
+
+	ZGUINT uSourceLength = pSource->Instance.uOffset + pSource->Instance.uCount,
+		uDestinationLength = pDestination->Instance.uOffset + pDestination->Instance.uCount,
+		uTemp;
+	while (uSourceOffset < uSourceLength && uDestinationOffset < uDestinationLength)
+	{
+		Source.uOffset = uSourceOffset;
+		Destination.uOffset = uDestinationOffset;
+
+		Source.uCount = uPitch;
+		Destination.uCount = uPitch;
+		uTemp = ZGBitFlagIndexOf(&Source, &Destination);
+		while (uTemp > 0)
+		{
+			if (pfnTest == ZG_NULL)
+				return ZG_TRUE;
+
+			Source.uOffset += uTemp;
+			if (pfnTest(pSource, Source.uOffset - 1))
+				return ZG_TRUE;
+
+			Destination.uOffset += uTemp;
+			Source.uCount -= uTemp;
+			Destination.uCount -= uTemp;
+			uTemp = ZGBitFlagIndexOf(&Source, &Destination);
+		}
+
+		uSourceOffset += pSource->uPitch;
+		uDestinationOffset += pDestination->uPitch;
+	}
+
+	return ZG_FALSE;
+}
+
 void ZGMapAssign(
 	LPZGMAP pSource, 
 	const ZGMAP* pDestination, 

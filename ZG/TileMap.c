@@ -4,23 +4,32 @@
 static LPZGTILEMAP sg_pTileMap;
 static const ZGTILERANGE* sg_pTileRange;
 
-static ZGTILEMAPTEST sg_pfnTest;
+static ZGMAPTEST sg_pfnMapTest;
+static ZGTILEMAPTEST sg_pfnTileMapTest;
 
 static ZGUINT sg_uToIndexX;
 static ZGUINT sg_uToIndexY;
 
-ZGUINT __ZGTileMapEvaluate(void* pMapNode)
+ZGUINT __ZGTileMapEvaluateDepth(void* pMapNode)
 {
 	const ZGTILEMAPNODE* pTemp = (const ZGTILEMAPNODE*)pMapNode;
 	
-	if (sg_pfnTest == ZG_NULL ? 
-		ZGMapTest(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, ZG_NULL, ZG_NULL) : 
-		sg_pfnTest(sg_pTileMap, sg_pTileRange, pTemp->uIndex))
+	if (ZGMapVisit(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, sg_pfnMapTest))
 		return ~0;
 
 	ZGUINT uFromX = pTemp->uIndex % sg_pTileMap->Instance.uPitch,
 		uFromY = pTemp->uIndex / sg_pTileMap->Instance.uPitch;
 	return ZG_ABS(uFromX, sg_uToIndexX) + ZG_ABS(uFromY, sg_uToIndexY);
+}
+
+ZGUINT __ZGTileMapEvaluateBreadth(void* pMapNode)
+{
+	const ZGTILEMAPNODE* pTemp = (const ZGTILEMAPNODE*)pMapNode;
+
+	if (ZGMapVisit(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, sg_pfnMapTest))
+		return ~0;
+
+	return sg_pfnTileMapTest == ZG_NULL || sg_pfnTileMapTest(sg_pTileMap, sg_pTileRange, pTemp->uIndex) ? 0 : 1;
 }
 
 void ZGTileRangeInitOblique(LPZGTILERANGE pRange, PZGUINT8 puFlags, ZGUINT uSize)
@@ -46,7 +55,7 @@ void ZGTileRangeInitOblique(LPZGTILERANGE pRange, PZGUINT8 puFlags, ZGUINT uSize
 	}
 }
 
-ZGUINT ZGTileMapSearch(
+ZGUINT ZGTileMapSearchDepth(
 	LPZGTILEMAP pTileMap,
 	const ZGTILERANGE* pTileRange,
 	ZGBOOLEAN bIsTest, 
@@ -55,7 +64,7 @@ ZGUINT ZGTileMapSearch(
 	ZGUINT uMaxDepth,
 	ZGUINT uMaxDistance,
 	ZGNODEPREDICATION pfnPredication, 
-	ZGTILEMAPTEST pfnTest)
+	ZGMAPTEST pfnMapTest)
 {
 	if (pTileMap == ZG_NULL || pTileRange == ZG_NULL)
 		return 0;
@@ -66,7 +75,7 @@ ZGUINT ZGTileMapSearch(
 	sg_pTileMap = pTileMap;
 	sg_pTileRange = pTileRange;
 
-	sg_pfnTest = pfnTest;
+	sg_pfnMapTest = pfnMapTest;
 
 	sg_uToIndexX = uToIndex % pTileMap->Instance.uPitch;
 	sg_uToIndexY = uToIndex / pTileMap->Instance.uPitch;
@@ -74,12 +83,45 @@ ZGUINT ZGTileMapSearch(
 	return ZGNodeSearch(
 		pTileMap->pNodes + uFromIndex, 
 		pfnPredication,
-		__ZGTileMapEvaluate,
+		__ZGTileMapEvaluateDepth,
 		0, 
 		~0, 
 		uMaxDistance, 
 		uMaxDepth, 
 		bIsTest ? ZG_NODE_SEARCH_TYPE_ONCE : ZG_NODE_SEARCH_TYPE_MIN);
+}
+
+ZGUINT ZGTileMapSearchBreadth(
+	LPZGTILEMAP pTileMap,
+	const ZGTILERANGE* pTileRange,
+	ZGUINT uIndex,
+	ZGUINT uMaxDepth,
+	ZGUINT uMaxDistance,
+	ZGNODEPREDICATION pfnPredication,
+	ZGMAPTEST pfnMapTest, 
+	ZGTILEMAPTEST pfnTileMapTest)
+{
+	if (pTileMap == ZG_NULL || pTileRange == ZG_NULL)
+		return 0;
+
+	if (pTileMap->Instance.Instance.uCount <= uIndex)
+		return 0;
+
+	sg_pTileMap = pTileMap;
+	sg_pTileRange = pTileRange;
+
+	sg_pfnMapTest = pfnMapTest;
+	sg_pfnTileMapTest = pfnTileMapTest;
+
+	return ZGNodeSearch(
+		pTileMap->pNodes + uIndex,
+		pfnPredication,
+		__ZGTileMapEvaluateBreadth,
+		0,
+		~0,
+		uMaxDistance,
+		uMaxDepth,
+		ZG_NODE_SEARCH_TYPE_MAX);
 }
 
 void ZGTileMapEnable(

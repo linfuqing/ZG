@@ -21,7 +21,6 @@ extern "C" {
 
 	typedef struct ZGTileManager
 	{
-		LPZGTILEMAP pTileMap;
 		LPZGTILEMANAGEROBJECT pObjects;
 		LPZGTILEMANAGERHANDLER pQueue;
 		LPZGTILEMANAGERHANDLER pPool;
@@ -74,7 +73,7 @@ extern "C" {
 		pTileManagerObject->pPrevious = ZG_NULL;
 		pTileManagerObject->pNext = ZG_NULL;
 
-		return ZG_NULL;
+		return ZG_TRUE;
 	}
 
 	ZGBOOLEAN ZGTileManagerSet(

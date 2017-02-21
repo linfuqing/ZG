@@ -3,7 +3,6 @@
 
 ZGUINT ZGTileObjectRun(
 	LPZGTILEOBJECT pTileObject,
-	LPZGTILEMAP pTileMap, 
 	ZGUINT uTime,
 	ZGUINT uBufferLength, 
 	PZGUINT8 puBuffer, 
@@ -35,17 +34,16 @@ ZGUINT ZGTileObjectRun(
 			uDepth = ZGTileActionSearchBreadth(
 				pTileObjectAction->pInstance,
 				&pTileObject->Instance,
-				pTileMap,
 				uBufferLength,
 				puBuffer,
 				pfnTileActionTest);
 
 			if (uDepth > 0)
 			{
-				if (pTileMap != ZG_NULL)
+				if (pTileObject->Instance.pTileMap != ZG_NULL)
 				{
 					uDepth = 0;
-					LPZGNODE pNode = pTileMap->pNodes + pTileObject->Instance.uIndex;
+					LPZGNODE pNode = pTileObject->Instance.pTileMap->pNodes + pTileObject->Instance.uIndex;
 					ZGUINT uDistance = 0, uIndex = pTileObject->Instance.uIndex;
 					uTime = 0;
 					while (pNode->pNext != ZG_NULL)
@@ -64,7 +62,7 @@ ZGUINT ZGTileObjectRun(
 								uTime, 
 								pTileObjectAction->pInstance == ZG_NULL ? ZG_NULL : pTileObjectAction->pData,
 								pTileObject->Instance.pData,
-								pTileMap,
+								pTileObject->Instance.pTileMap,
 								uIndex,
 								pTileMapNode->uIndex);
 
@@ -82,7 +80,7 @@ ZGUINT ZGTileObjectRun(
 					}
 
 					pTileMapNode = (LPZGTILEMAPNODE)pNode->pData;
-					if (ZGTileNodeSetTo(&pTileObject->Instance, pTileMap, pTileMapNode->uIndex))
+					if (ZGTileNodeSetTo(&pTileObject->Instance, pTileObject->Instance.pTileMap, pTileMapNode->uIndex))
 					{
 						pTileObject->nTime -= uTime;
 						if (pTileObject->nTime > 0 && pNode->pNext == ZG_NULL)
@@ -92,7 +90,7 @@ ZGUINT ZGTileObjectRun(
 								uTime, 
 								pTileObjectAction->pInstance == ZG_NULL ? ZG_NULL : pTileObjectAction->pData,
 								pTileObject->Instance.pData,
-								pTileMap,
+								pTileObject->Instance.pTileMap,
 								pTileActionMapNode->uMaxIndex,
 								ZG_MIN(pTileActionMapNode->uMaxCount, pTileActionMapNode->uCount),
 								pTileActionMapNode->ppNodes);

@@ -89,7 +89,7 @@ ZGUINT __ZGSLGAction(ZGUINT uElapsedTime, void* pTileActionObjectData, void* pTi
 		lHp = ((PZGLONG)pTileNode->pData)[ZG_SLG_OBJECT_ATTRIBUTE_HP] += lDamage;
 		if (lHp <= 0)
 		{
-			ZGTileNodeUnset(pTileNode, pTileMap);
+			ZGTileNodeUnset(pTileNode);
 
 			ZGRBListRemove(sg_pRBList, pRBListNode);
 		}
@@ -291,7 +291,7 @@ ZGUINT ZGSLGSearchDepth(const ZGRBLISTNODE* pRBListNode, LPZGTILEMAP pTileMap, Z
 	sg_uIndex = uIndex;
 	sg_pTileNode = &((const ZGTILEOBJECT*)pRBListNode->pValue)->Instance;
 	sg_pTileMap = pTileMap;
-	return ZGTileNodeSearchDepth(sg_pTileNode, pTileMap, ZG_FALSE, uIndex, __ZGSLGTestMap);
+	return ZGTileNodeSearchDepth(sg_pTileNode, ZG_FALSE, uIndex, __ZGSLGTestMap);
 }
 
 ZGUINT ZGSLGSearchBreadth(const ZGRBLISTNODE* pRBListNode, LPZGTILEMAP pTileMap, PZGUINT* ppIndices)
@@ -302,7 +302,7 @@ ZGUINT ZGSLGSearchBreadth(const ZGRBLISTNODE* pRBListNode, LPZGTILEMAP pTileMap,
 	sg_pTileNode = &((const ZGTILEOBJECT*)pRBListNode->pValue)->Instance;
 	sg_pTileMap = pTileMap;
 	sg_uCount = 0;
-	ZGTileNodeSearchBreadth(sg_pTileNode, pTileMap, __ZGSLGTestMap, __ZGSLGTestTileMap);
+	ZGTileNodeSearchBreadth(sg_pTileNode, __ZGSLGTestMap, __ZGSLGTestTileMap);
 
 	if (ppIndices != ZG_NULL)
 		*ppIndices = (PZGUINT)sg_auBuffer;
@@ -405,7 +405,6 @@ ZGUINT ZGSLGRun(
 
 		uDepth = ZGTileObjectRun(
 			pTileObject,
-			pTileMap,
 			1,
 			ZG_SLG_BUFFER_SIZE,
 			sg_auBuffer,

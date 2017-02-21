@@ -40,7 +40,6 @@ extern "C" {
 	ZGUINT ZGTileActionSearchBreadth(
 		const ZGTILEACTION* pTileAction,
 		const ZGTILENODE* pTileNode,
-		LPZGTILEMAP pTileMap,
 		ZGUINT uBufferLength,
 		PZGUINT8 puBuffer,
 		ZGTILEACTIONTEST pfnTileActionTest);

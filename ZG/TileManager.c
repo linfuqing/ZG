@@ -10,7 +10,7 @@ ZGUINT __ZGTileManagerSet(ZGUINT uElapsedTime, void* pTileActionObjectData, void
 	if (sg_pfnTileManagerSet == ZG_NULL)
 		return 0;
 
-	void* pUserData = ZG_NULL;
+	void* pUserData = sg_pPool == ZG_NULL ? ZG_NULL : sg_pPool->pUserData;
 	ZGUINT uTime = sg_pfnTileManagerSet(uElapsedTime, pTileActionObjectData, pTileNodeData, pTileMap, uIndex, uCount, ppTileNodes, &pUserData);
 	if (sg_pPool != ZG_NULL)
 	{
@@ -60,7 +60,7 @@ ZGBOOLEAN ZGTileManagerSet(
 		0, 
 		pTileActionObjectData,
 		pTileManagerObject->Instance.Instance.pData,
-		pTileManager->pTileMap,
+		pTileManagerObject->Instance.Instance.pTileMap,
 		uIndex,
 		0, 
 		ZG_NULL);
@@ -138,7 +138,6 @@ void ZGTileManagerRun(
 	{
 		uDelayTime = ZGTileObjectRun(
 			&pTileManagerObject->Instance,
-			pTileManager->pTileMap,
 			uTime,
 			uBufferLength,
 			puBuffer,

@@ -101,15 +101,19 @@ extern "C" {
 		ZGUINT uRange,
 		ZGUINT uChildCount);
 
-	ZG_RTS_EXPORT LPZGTILEMANAGER ZGRTSCreateManager(ZGUINT uCapacity, ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique);
+	ZG_RTS_EXPORT LPZGTILEMAP ZGRTSCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique);
 
-	ZG_RTS_EXPORT void ZGRTSDestroyManager(LPZGTILEMANAGER pTileManager);
+	ZG_RTS_EXPORT LPZGTILEMANAGER ZGRTSCreateManager(ZGUINT uCapacity);
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetManager(LPZGTILEMANAGER pTileManager, ZGUINT uIndex, ZGBOOLEAN bValue);
+	ZG_RTS_EXPORT void ZGRTSDestroyMap(LPZGTILEMAP pTileMap);
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetObjectToManager(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMANAGER pTileManager, ZGUINT uIndex);
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSGetMap(LPZGTILEMAP pTileMap, ZGUINT uIndex);
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSUnsetObjectFromManager(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMANAGER pTileManager);
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMap(LPZGTILEMAP pTileMap, ZGUINT uIndex, ZGBOOLEAN bValue);
+
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetObjectToMap(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMAP pTileMap, ZGUINT uIndex);
+
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSUnsetObjectFromMap(LPZGTILEMANAGEROBJECT pTileManagerObject);
 
 	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSAddObjectToManager(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMANAGER pTileManager);
 
@@ -141,11 +145,11 @@ extern "C" {
 		return pTileManagerObject->Instance.Instance.uIndex;
 	}
 
-	ZG_RTS_EXPORT LPZGNODE ZGRTSGetMapNodeFromManager(LPZGTILEMANAGER pTileManager, ZGUINT uIndex)
+	ZG_RTS_EXPORT LPZGNODE ZGRTSGetMapNodeFromMap(LPZGTILEMAP pTileMap, ZGUINT uIndex)
 	{
-		return pTileManager == ZG_NULL || pTileManager->pTileMap == ZG_NULL || pTileManager->pTileMap->Instance.Instance.uCount <= uIndex ? 
+		return pTileMap == ZG_NULL || pTileMap->Instance.Instance.uCount <= uIndex ?
 			ZG_NULL : 
-			pTileManager->pTileMap->pNodes + uIndex;
+			pTileMap->pNodes + uIndex;
 	}
 
 	ZG_RTS_EXPORT ZGUINT ZGRTSGetIndexFromMapNode(LPZGNODE pNode)
@@ -252,12 +256,12 @@ extern "C" {
 		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetDistanceToManager(LPZGTILEMANAGER pTileManager, ZGUINT uIndex, ZGUINT uDistance)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetDistanceToMap(LPZGTILEMAP pTileMap, ZGUINT uIndex, ZGUINT uDistance)
 	{
-		if (pTileManager == ZG_NULL)
+		if (pTileMap == ZG_NULL)
 			return ZG_FALSE;
 
-		LPZGTILENODEMAPNODE pTileNodeMapNode = (LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileManager->pTileMap, uIndex);
+		LPZGTILENODEMAPNODE pTileNodeMapNode = (LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, uIndex);
 		if (pTileNodeMapNode == ZG_NULL)
 			return ZG_FALSE;
 

@@ -8,18 +8,12 @@
 #define ZG_RTS_BUFFER_SIZE 1024
 #define ZG_RTS_OUTPUT_SIZE 1024
 #define ZG_RTS_INFO_SIZE 1024
-#define ZG_RTS_HANDLER_SIZE 1024
 
 static ZGUINT8 sg_auBuffer[ZG_RTS_BUFFER_SIZE];
 static ZGUINT8 sg_auOutput[ZG_RTS_OUTPUT_SIZE];
 static ZGRTSINFO sg_aInfos[ZG_RTS_INFO_SIZE];
-static ZGRTSHANDLER sg_aHandler[ZG_RTS_HANDLER_SIZE];
-static ZGUINT sg_auHandlerIndices[ZG_RTS_HANDLER_SIZE];
-static ZGUINT sg_uHandlerIndexCount;
 static ZGUINT sg_uOffset;
 static ZGUINT sg_uCount;
-
-static LPZGTILEMAP sg_pTileMap;
 
 ZGBOOLEAN __ZGRTSAnalyzate(const void* pSourceTileNodeData, const void* pDestinationTileNodeData)
 {
@@ -28,12 +22,11 @@ ZGBOOLEAN __ZGRTSAnalyzate(const void* pSourceTileNodeData, const void* pDestina
 
 ZGBOOLEAN __ZGRTSTestAction(const void* pTileNodeData, const LPZGTILENODE* ppTileNodes, ZGUINT uNodeCount)
 {
-	ZGUINT uCamp = ((const ZGUINT*)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_CAMP];
 	LPZGTILENODE pTileNode;
 	for (ZGUINT i = 0; i < uNodeCount; ++i)
 	{
 		pTileNode = ppTileNodes[i];
-		if (pTileNode != ZG_NULL && pTileNode->pData != ZG_NULL && ((const ZGUINT*)pTileNode->pData)[ZG_RTS_OBJECT_ATTRIBUTE_CAMP] != uCamp)
+		if (pTileNode != ZG_NULL && pTileNode->pData != ZG_NULL && pTileNode->pData != pTileNodeData)
 			return ZG_FALSE;
 	}
 
@@ -99,29 +92,15 @@ ZGUINT __ZGRTSSet(ZGUINT uElapsedTime, void* pTileActionObjectData, void* pTileN
 
 	LPZGTILEOBJECTACTION pTileObjectAction = (LPZGTILEOBJECTACTION)((PZGLONG)pTileActionObjectData)[ZG_RTS_ACTION_ATTRIBUTE_PARENT];
 	LPZGTILEMANAGEROBJECT pTileManagerObject = (LPZGTILEMANAGEROBJECT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_PARENT];
-	if (ppUserData != ZG_NULL)
+	if (ppUserData != ZG_NULL && *ppUserData != ZG_NULL)
 	{
-		static ZGBOOLEAN s_bIsInitHandlers = ZG_TRUE;
-		if (s_bIsInitHandlers)
-		{
-			s_bIsInitHandlers = ZG_FALSE;
-
-			for (ZGUINT i = 0; i < ZG_RTS_HANDLER_SIZE; ++i)
-				sg_auHandlerIndices[i] = i;
-
-			sg_uHandlerIndexCount = ZG_RTS_HANDLER_SIZE;
-		}
-
-		if (sg_uHandlerIndexCount > 0)
-		{
-			LPZGRTSHANDLER pHandler = sg_aHandler + sg_auHandlerIndices[--sg_uHandlerIndexCount];
-			pHandler->uTime = uElapsedTime + (ZGUINT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_HAND_TIME];
-			pHandler->uIndex = uIndex;
-			pHandler->pTileObjectAction = pTileObjectAction;
-			pHandler->pTileManagerObject = pTileManagerObject;
+		LPZGRTSHANDLER pHandler = (LPZGRTSHANDLER)(*ppUserData);
+		pHandler->uTime = uElapsedTime + (ZGUINT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_HAND_TIME];
+		pHandler->uIndex = uIndex;
+		pHandler->pTileObjectAction = pTileObjectAction;
+		pHandler->pTileManagerObject = pTileManagerObject;
 			
-			*ppUserData = pHandler;
-		}
+		*ppUserData = pHandler;
 	}
 
 	ZGUINT uTime = (ZGUINT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_SET_TIME];
@@ -134,7 +113,7 @@ ZGUINT __ZGRTSSet(ZGUINT uElapsedTime, void* pTileActionObjectData, void* pTileN
 		pInfo->pTileManagerObject = pTileManagerObject;
 		LPZGRTSINFOSET pInfoSet = (LPZGRTSINFOSET)(sg_auOutput + sg_uOffset);
 
-		sg_uOffset += sizeof(LPZGRTSINFOHAND);
+		sg_uOffset += sizeof(ZGRTSINFOSET);
 		if (sg_uOffset > ZG_RTS_OUTPUT_SIZE)
 			pInfoSet = ZG_NULL;
 		else
@@ -223,20 +202,22 @@ ZGUINT __ZGRTSSet(ZGUINT uElapsedTime, void* pTileActionObjectData, void* pTileN
 ZGBOOLEAN __ZGRTSDo(
 	LPZGTILEOBJECTACTION pTileObjectAction,
 	LPZGTILEMANAGEROBJECT pTileManagerObject,
-	LPZGTILEMAP pTileMap,
 	ZGUINT uIndex, 
 	ZGUINT uElapsedTime)
 {
-	if (pTileObjectAction == ZG_NULL || pTileManagerObject == ZG_NULL || pTileMap == ZG_NULL)
+	if (pTileObjectAction == ZG_NULL || pTileManagerObject == ZG_NULL)
 		return ZG_FALSE;
 
 	if (pTileObjectAction->pInstance == ZG_NULL || pTileObjectAction->pInstance->pInstance == ZG_NULL)
 		return ZG_FALSE;
 
+	if (pTileManagerObject->Instance.Instance.pTileMap == ZG_NULL)
+		return ZG_FALSE;
+
 	ZGUINT uCount = ZG_RTS_BUFFER_SIZE * sizeof(ZGUINT8) / sizeof(ZGUINT);
 	PZGUINT puIndices = (PZGUINT)sg_auBuffer;
 	if (ZGMapTest(
-		&pTileMap->Instance,
+		&pTileManagerObject->Instance.Instance.pTileMap->Instance,
 		&pTileObjectAction->pInstance->pInstance->Instance.Instance,
 		uIndex,
 		pTileObjectAction->pInstance->pInstance->Instance.uOffset,
@@ -247,7 +228,7 @@ ZGBOOLEAN __ZGRTSDo(
 		LPZGTILENODE *ppTileNodes = (LPZGTILENODE*)(puIndices + uCount), pTileNode;
 		for (i = 0; i < uCount; ++i)
 		{
-			pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, puIndices[i]))->pNode;
+			pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileManagerObject->Instance.Instance.pTileMap, puIndices[i]))->pNode;
 			if (pTileNode == ZG_NULL)
 				continue;
 
@@ -288,7 +269,7 @@ ZGBOOLEAN __ZGRTSDo(
 
 				pInfoHand = (LPZGRTSINFOHAND)(sg_auOutput + sg_uOffset);
 
-				sg_uOffset += sizeof(LPZGRTSINFOHAND);
+				sg_uOffset += sizeof(ZGRTSINFOHAND);
 				if (sg_uOffset > ZG_RTS_OUTPUT_SIZE)
 					pInfoHand = ZG_NULL;
 				else
@@ -320,8 +301,8 @@ ZGBOOLEAN __ZGRTSDo(
 					lDamage += ((PZGLONG)pTileNode->pData)[ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + j] - ((PZGLONG)pTileManagerObject->Instance.Instance.pData)[ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + j];
 
 				lHp = ((PZGLONG)pTileNode->pData)[ZG_RTS_OBJECT_ATTRIBUTE_HP] += lDamage;
-				if (lHp <= 0)
-					ZGTileNodeUnset(pTileNode, pTileMap);
+				/*if (lHp <= 0)
+					ZGTileNodeUnset(pTileNode, pTileMap);*/
 
 				if (pInfoHand != ZG_NULL)
 				{
@@ -362,7 +343,7 @@ ZGBOOLEAN __ZGRTSHand(ZGUINT uTime, void* pUserData)
 		return ZG_TRUE;
 	}
 
-	__ZGRTSDo(pHandler->pTileObjectAction, pHandler->pTileManagerObject, sg_pTileMap, pHandler->uIndex, pHandler->uTime);
+	__ZGRTSDo(pHandler->pTileObjectAction, pHandler->pTileManagerObject, pHandler->uIndex, pHandler->uTime);
 
 	return ZG_FALSE;
 }
@@ -389,6 +370,7 @@ LPZGTILEMANAGEROBJECT ZGRTSCreateObject(
 
 	pResult->Instance.Instance.pInstance = pTileNodeData;
 	pResult->Instance.Instance.pData = plAttributes;
+	pResult->Instance.Instance.pTileMap = ZG_NULL;
 	pResult->Instance.Instance.uIndex = ~0;
 
 	pResult->Instance.nTime = 0;
@@ -465,18 +447,19 @@ LPZGTILEOBJECTACTION ZGRTSCreateAction(
 	for (i = 0; i < (ZGUINT)(ZG_RTS_ACTION_ATTRIBUTE_COUNT); ++i)
 		plAttributes[i] = 0;
 
+	plAttributes[ZG_RTS_ACTION_ATTRIBUTE_PARENT] = (ZGLONG)pResult;
+
 	for (i = 0; i < uChildCount; ++i)
 		pResult->ppChildren[i] = ZG_NULL;
 
 	return pResult;
 }
 
-LPZGTILEMANAGER ZGRTSCreateManager(ZGUINT uCapacity, ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
+LPZGTILEMAP ZGRTSCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
 {
+
 	ZGUINT uCount = uWidth * uHeight, uFlagLength = (uCount + 7) >> 3, uChildCount = ZGTileChildCount(uWidth, uHeight, bIsOblique), uNodeCount = uCount * ZG_RTS_MAP_NODE_SIZE;
-	LPZGTILEMANAGER pResult = (LPZGTILEMANAGER)malloc(
-		sizeof(ZGTILEMANAGER) + 
-		sizeof(ZGTILEMANAGERHANDLER) * uCapacity + 
+	LPZGTILEMAP pResult = (LPZGTILEMAP)malloc(
 		sizeof(ZGTILEMAP) +
 		sizeof(ZGUINT8) * uFlagLength +
 		sizeof(LPZGNODE) * uChildCount +
@@ -485,39 +468,16 @@ LPZGTILEMANAGER ZGRTSCreateManager(ZGUINT uCapacity, ZGUINT uWidth, ZGUINT uHeig
 		sizeof(ZGTILEMAPNODE) * uCount +
 		sizeof(ZGTILENODEMAPNODE) * uCount +
 		sizeof(ZGTILEACTIONMAPNODE) * uCount);
-	LPZGTILEMANAGERHANDLER pTileManagerHandlers = (LPZGTILEMANAGERHANDLER)(pResult + 1);
-	LPZGTILEMAP pTileMap = (LPZGTILEMAP)(pTileManagerHandlers + uCapacity);
-	PZGUINT8 puFlags = (PZGUINT8)(pTileMap + 1);
+	PZGUINT8 puFlags = (PZGUINT8)(pResult + 1);
 	LPZGNODE* ppNodes = (LPZGNODE*)(puFlags + uFlagLength), pNodes = (LPZGNODE)(ppNodes + uChildCount);
 	LPZGTILENODE* ppTileNodes = (LPZGTILENODE*)(pNodes + uCount);
 	LPZGTILEMAPNODE pTileMapNodes = (LPZGTILEMAPNODE)(ppTileNodes + uNodeCount);
 	LPZGTILENODEMAPNODE pTileNodeMapNodes = (LPZGTILENODEMAPNODE)(pTileMapNodes + uCount);
 	LPZGTILEACTIONMAPNODE pTileActionMapNodes = (LPZGTILEACTIONMAPNODE)(pTileNodeMapNodes + uCount);
-	pResult->pTileMap = pTileMap;
-	pResult->pObjects = ZG_NULL;
-	pResult->pQueue = ZG_NULL;
-	
+
+	ZGTileMapEnable(pResult, puFlags, ppNodes, pNodes, pTileMapNodes, uWidth, uHeight, bIsOblique);
+
 	ZGUINT i;
-	LPZGTILEMANAGERHANDLER pTileManagerHandler = pTileManagerHandlers;
-	for (i = 1; i < uCapacity; ++i)
-	{
-		pTileManagerHandler = pTileManagerHandlers + i;
-		pTileManagerHandler->pUserData = ZG_NULL;
-		pTileManagerHandler->pNext = pTileManagerHandlers + i - 1;
-	}
-
-	if (uCapacity > 0)
-	{
-		pTileManagerHandlers->pUserData = ZG_NULL;
-		pTileManagerHandlers->pNext = ZG_NULL;
-
-		pResult->pPool = pTileManagerHandler;
-	}
-	else
-		pResult->pPool = ZG_NULL;
-
-	ZGTileMapEnable(pTileMap, puFlags, ppNodes, pNodes, pTileMapNodes, uWidth, uHeight, bIsOblique);
-
 	for (i = 0; i < uFlagLength; ++i)
 		puFlags[i] = 0;
 
@@ -529,41 +489,72 @@ LPZGTILEMANAGER ZGRTSCreateManager(ZGUINT uCapacity, ZGUINT uWidth, ZGUINT uHeig
 		pTileNodeMapNodes->uDistance = 1;
 		pTileNodeMapNodes->pNode = ZG_NULL;
 		pTileNodeMapNodes->pData = pTileActionMapNodes++;
-		((LPZGTILEMAPNODE)pTileMap->pNodes[i].pData)->pData = pTileNodeMapNodes++;
+		((LPZGTILEMAPNODE)pResult->pNodes[i].pData)->pData = pTileNodeMapNodes++;
 	}
 
 	return pResult;
 }
 
-void ZGRTSDestroyManager(LPZGTILEMANAGER pTileManager)
+LPZGTILEMANAGER ZGRTSCreateManager(ZGUINT uCapacity)
 {
-	if(pTileManager != ZG_NULL)
-		ZGTileMapDisable(pTileManager->pTileMap);
+	LPZGTILEMANAGER pResult = (LPZGTILEMANAGER)malloc(
+		sizeof(ZGTILEMANAGER) + 
+		sizeof(ZGTILEMANAGERHANDLER) * uCapacity + 
+		sizeof(ZGRTSHANDLER) * uCapacity);
+	LPZGTILEMANAGERHANDLER pTileManagerHandlers = (LPZGTILEMANAGERHANDLER)(pResult + 1);
+	LPZGRTSHANDLER pHandlers = (LPZGRTSHANDLER)(pTileManagerHandlers + uCapacity);
+	pResult->pObjects = ZG_NULL;
+	pResult->pQueue = ZG_NULL;
+	
+	ZGUINT i;
+	LPZGTILEMANAGERHANDLER pTileManagerHandler = pTileManagerHandlers;
+	for (i = 1; i < uCapacity; ++i)
+	{
+		pTileManagerHandler = pTileManagerHandlers + i;
+		pTileManagerHandler->pUserData = pHandlers + i;
+		pTileManagerHandler->pNext = pTileManagerHandlers + i - 1;
+	}
 
-	free(pTileManager);
+	if (uCapacity > 0)
+	{
+		pTileManagerHandlers->pUserData = pHandlers;
+		pTileManagerHandlers->pNext = ZG_NULL;
+
+		pResult->pPool = pTileManagerHandler;
+	}
+	else
+		pResult->pPool = ZG_NULL;
+
+	return pResult;
 }
 
-ZGBOOLEAN ZGRTSSetManager(LPZGTILEMANAGER pTileManager, ZGUINT uIndex, ZGBOOLEAN bValue)
+void ZGRTSDestroyMap(LPZGTILEMAP pTileMap)
 {
-	if (pTileManager == ZG_NULL)
-		return ZG_FALSE;
+	ZGTileMapDisable(pTileMap);
 
-	return ZGTileMapSet(pTileManager->pTileMap, uIndex, bValue);
+	free(pTileMap);
 }
 
-ZGBOOLEAN ZGRTSSetObjectToManager(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMANAGER pTileManager, ZGUINT uIndex)
+ZGBOOLEAN ZGRTSGetMap(LPZGTILEMAP pTileMap, ZGUINT uIndex)
 {
-	if (pTileManagerObject == ZG_NULL || pTileManager == ZG_NULL)
+	return ZGTileMapGet(pTileMap, uIndex);
+}
+
+ZGBOOLEAN ZGRTSSetMap(LPZGTILEMAP pTileMap, ZGUINT uIndex, ZGBOOLEAN bValue)
+{
+	return ZGTileMapSet(pTileMap, uIndex, bValue);
+}
+
+ZGBOOLEAN ZGRTSSetObjectToMap(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMAP pTileMap, ZGUINT uIndex)
+{
+	if (pTileManagerObject == ZG_NULL || pTileMap == ZG_NULL)
 		return ZG_FALSE;
 
-	if (pTileManager->pTileMap == ZG_NULL)
-		return ZG_FALSE;
-
-	if (pTileManagerObject->Instance.Instance.uIndex < pTileManager->pTileMap->Instance.Instance.uCount)
+	if (pTileManagerObject->Instance.Instance.uIndex < pTileMap->Instance.Instance.uCount)
 		return ZG_FALSE;
 
 	if (ZGMapTest(
-		&pTileManager->pTileMap->Instance,
+		&pTileMap->Instance,
 		&pTileManagerObject->Instance.Instance.pInstance->Instance.Instance,
 		uIndex,
 		pTileManagerObject->Instance.Instance.pInstance->Instance.uOffset,
@@ -571,15 +562,15 @@ ZGBOOLEAN ZGRTSSetObjectToManager(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZG
 		ZG_NULL))
 		return ZG_FALSE;
 
-	return ZGTileNodeSetTo(&pTileManagerObject->Instance.Instance, pTileManager->pTileMap, uIndex);
+	return ZGTileNodeSetTo(&pTileManagerObject->Instance.Instance, pTileMap, uIndex);
 }
 
-ZGBOOLEAN ZGRTSUnsetObjectFromManager(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMANAGER pTileManager)
+ZGBOOLEAN ZGRTSUnsetObjectFromMap(LPZGTILEMANAGEROBJECT pTileManagerObject)
 {
-	if (pTileManagerObject == ZG_NULL || pTileManager == ZG_NULL)
+	if (pTileManagerObject == ZG_NULL)
 		return ZG_FALSE;
 
-	return ZGTileNodeUnset(&pTileManagerObject->Instance.Instance, pTileManager->pTileMap);
+	return ZGTileNodeUnset(&pTileManagerObject->Instance.Instance);
 }
 
 ZGBOOLEAN ZGRTSAddObjectToManager(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEMANAGER pTileManager)
@@ -624,8 +615,6 @@ LPZGRTSINFO ZGRTSRun(LPZGTILEMANAGER pTileManager, ZGUINT uTime, PZGUINT puInfoC
 {
 	sg_uOffset = 0;
 	sg_uCount = 0;
-
-	sg_pTileMap = pTileManager == ZG_NULL ? ZG_NULL : pTileManager->pTileMap;
 
 	ZGTileManagerRun(
 		pTileManager,

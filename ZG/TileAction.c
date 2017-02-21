@@ -151,20 +151,19 @@ ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
 ZGUINT ZGTileActionSearchBreadth(
 	const ZGTILEACTION* pTileAction, 
 	const ZGTILENODE* pTileNode,
-	LPZGTILEMAP pTileMap,
 	ZGUINT uBufferLength,
 	PZGUINT8 puBuffer, 
 	ZGTILEACTIONTEST pfnTileActionTest)
 {
-	if (pTileAction == ZG_NULL || pTileNode == ZG_NULL || pTileMap == ZG_NULL)
+	if (pTileAction == ZG_NULL || pTileNode == ZG_NULL)
 		return 0;
 
-	if (pTileAction->pInstance == ZG_NULL || pTileNode->pInstance == ZG_NULL || pTileMap->Instance.Instance.uCount <= pTileNode->uIndex)
+	if (pTileAction->pInstance == ZG_NULL || pTileNode->pInstance == ZG_NULL || pTileNode->pTileMap == ZG_NULL || pTileNode->pTileMap->Instance.Instance.uCount <= pTileNode->uIndex)
 		return 0;
 
 	sg_pTileAction = pTileAction;
 	sg_pTileRange = &pTileNode->pInstance->Instance;
-	sg_pTileMap = pTileMap;
+	sg_pTileMap = pTileNode->pTileMap;
 
 	sg_pTileNodeData = pTileNode->pData;
 	sg_pfnTileActionTest = pfnTileActionTest;
@@ -173,7 +172,7 @@ ZGUINT ZGTileActionSearchBreadth(
 	sg_puBuffer = puBuffer;
 
 	return ZGNodeSearch(
-		pTileMap->pNodes + pTileNode->uIndex,
+		pTileNode->pTileMap->pNodes + pTileNode->uIndex,
 		ZGTilePredicate,
 		__ZGTileActionEvaluateBreadth,
 		pTileAction->uMinEvaluation,

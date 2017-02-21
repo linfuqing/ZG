@@ -34,7 +34,6 @@ extern "C" {
 
 	ZGUINT ZGTileObjectRun(
 		LPZGTILEOBJECT pTileObject,
-		LPZGTILEMAP pTileMap,
 		ZGUINT uTime, 
 		ZGUINT uBufferLength,
 		PZGUINT8 puBuffer,

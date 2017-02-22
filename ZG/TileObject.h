@@ -5,19 +5,36 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	typedef ZGUINT(*ZGTILEOBJECTMOVE)(ZGUINT uElapsedTime, void* pTileActionObjectData, void* pTileNodeData, LPZGTILEMAP pTileMap, ZGUINT uFromIndex, ZGUINT uToIndex);
-	typedef ZGUINT(*ZGTILEOBJECTSET)(ZGUINT uElapsedTime, void* pTileActionObjectData, void* pTileNodeData, LPZGTILEMAP pTileMap, ZGUINT uIndex, ZGUINT uCount, LPZGTILENODE* ppTileNodes);
+	typedef ZGUINT(*ZGTILEOBJECTCHECK)(
+		void* pTileObjectActionData, 
+		LPZGTILENODE pTileNode);
 
-	typedef enum ZGTileObjectActionType
-	{
-		ZG_TILE_OBJECT_ACTION_TYPE_INDEX,
-		ZG_TILE_OBJECT_ACTION_TYPE_DEPTH, 
-		ZG_TILE_OBJECT_ACTION_TYPE_BREADTH
-	}ZGTILEOBJECTACTIONTYPE;
+	typedef ZGUINT(*ZGTILEOBJECTMOVE)(
+		ZGUINT uElapsedTime, 
+		void* pTileObjectActionData, 
+		void* pTileNodeData, 
+		LPZGTILEMAP pTileMap, 
+		ZGUINT uFromIndex, 
+		ZGUINT uToIndex);
+
+	typedef ZGUINT(*ZGTILEOBJECTSET)(
+		ZGUINT uElapsedTime, 
+		void* pTileObjectActionData, 
+		void* pTileNodeData, 
+		LPZGTILEMAP pTileMap, 
+		ZGUINT uIndex, 
+		void** ppUserData/*,
+		ZGUINT uCount, 
+		LPZGTILENODE* ppTileNodes*/);
+
+	typedef void*(*ZGTILEOBJECTPOP)();
+	typedef void(*ZGTILEOBJECTPUSH)(void* pUserData);
 
 	typedef struct ZGTileObjectAction
 	{
-		LPZGTILEACTION pInstance;
+		ZGTILEOBJECTCHECK pfnCheck;
+		ZGTILEOBJECTMOVE pfnMove;
+		ZGTILEOBJECTSET pfnSet;
 
 		void* pData;
 
@@ -35,11 +52,8 @@ extern "C" {
 	ZGUINT ZGTileObjectRun(
 		LPZGTILEOBJECT pTileObject,
 		ZGUINT uTime, 
-		ZGUINT uBufferLength,
-		PZGUINT8 puBuffer,
-		ZGTILEACTIONTEST pfnTileActionTest,
-		ZGTILEOBJECTMOVE pfnTileObjectMove, 
-		ZGTILEOBJECTSET pfnTileObjectSet);
+		ZGTILEOBJECTPOP pfnTileObjectPop, 
+		ZGTILEOBJECTPUSH pfnTileObjectPush);
 #ifdef __cplusplus
 }
 #endif

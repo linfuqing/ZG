@@ -23,19 +23,19 @@ extern "C" {
 
 	typedef struct ZGTileNodeMapNode
 	{
-		ZGUINT uDistance;
+		//ZGUINT uDistance;
 
 		LPZGTILENODE pNode;
 
 		void* pData;
 	}ZGTILENODEMAPNODE, *LPZGTILENODEMAPNODE;
 
-	ZG_INLINE ZGUINT ZGTilePredicate(const void* x, const void* y)
+	/*ZG_INLINE ZGUINT ZGTilePredicate(const void* x, const void* y)
 	{
 		const ZGTILENODEMAPNODE* pTemp = (const ZGTILENODEMAPNODE*)((const ZGTILEMAPNODE*)x)->pData;
 
 		return pTemp->uDistance;
-	}
+	}*/
 
 	ZGBOOLEAN ZGTileNodeUnset(LPZGTILENODE pTileNode);
 
@@ -46,12 +46,14 @@ extern "C" {
 
 	ZGUINT ZGTileNodeSearchDepth(
 		const ZGTILENODE* pTileNode,
-		ZGBOOLEAN bIsTest,
+		//ZGBOOLEAN bIsTest,
 		ZGUINT uIndex, 
+		ZGNODEPREDICATION pfnPredication,
 		ZGMAPTEST pfnMapTest);
 
 	ZGUINT ZGTileNodeSearchBreadth(
 		const ZGTILENODE* pTileNode,
+		ZGNODEPREDICATION pfnPredication,
 		ZGMAPTEST pfnMapTest,
 		ZGTILEMAPTEST pfnTileMapTest);
 #ifdef __cplusplus

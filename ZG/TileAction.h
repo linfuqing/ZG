@@ -5,6 +5,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+	typedef ZGUINT(*ZGTILEACTIONEVALUATION)(const ZGTILEMAP* pTileMap, ZGUINT uIndex);
 	typedef ZGBOOLEAN (*ZGTILEACTIONTEST)(const void* pTileNodeData, const LPZGTILENODE* ppTileNodes, ZGUINT uNodeCount);
 	typedef ZGBOOLEAN (*ZGTILEACTIONANALYZATION)(const void* pSourceTileNodeData, const void* pDestinationTileNodeData);
 
@@ -39,9 +40,10 @@ extern "C" {
 
 	ZGUINT ZGTileActionSearchBreadth(
 		const ZGTILEACTION* pTileAction,
-		const ZGTILENODE* pTileNode,
+		LPZGTILENODE pTileNode,
 		ZGUINT uBufferLength,
 		PZGUINT8 puBuffer,
+		ZGNODEPREDICATION pfnPredication,
 		ZGTILEACTIONTEST pfnTileActionTest);
 #ifdef __cplusplus
 }

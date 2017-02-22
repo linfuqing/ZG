@@ -150,15 +150,19 @@ ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
 
 ZGUINT ZGTileActionSearchBreadth(
 	const ZGTILEACTION* pTileAction, 
-	const ZGTILENODE* pTileNode,
+	LPZGTILENODE pTileNode,
 	ZGUINT uBufferLength,
 	PZGUINT8 puBuffer, 
+	ZGNODEPREDICATION pfnPredication,
 	ZGTILEACTIONTEST pfnTileActionTest)
 {
 	if (pTileAction == ZG_NULL || pTileNode == ZG_NULL)
 		return 0;
 
-	if (pTileAction->pInstance == ZG_NULL || pTileNode->pInstance == ZG_NULL || pTileNode->pTileMap == ZG_NULL || pTileNode->pTileMap->Instance.Instance.uCount <= pTileNode->uIndex)
+	if (pTileAction->pInstance == ZG_NULL || 
+		pTileNode->pInstance == ZG_NULL || 
+		pTileNode->pTileMap == ZG_NULL || 
+		pTileNode->pTileMap->Instance.Instance.uCount <= pTileNode->uIndex)
 		return 0;
 
 	sg_pTileAction = pTileAction;
@@ -173,11 +177,11 @@ ZGUINT ZGTileActionSearchBreadth(
 
 	return ZGNodeSearch(
 		pTileNode->pTileMap->pNodes + pTileNode->uIndex,
-		ZGTilePredicate,
+		pfnPredication,
 		__ZGTileActionEvaluateBreadth,
 		pTileAction->uMinEvaluation,
 		pTileAction->uMaxEvaluation,
 		pTileAction->uMaxDistance,
-		pTileAction->uMaxDepth,
-		ZG_NODE_SEARCH_TYPE_MAX);
+		pTileAction->uMaxDepth/*,
+		ZG_NODE_SEARCH_TYPE_MAX*/);
 }

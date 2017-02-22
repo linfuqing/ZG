@@ -26,19 +26,11 @@ extern "C" {
 		LPZGTILEMANAGERHANDLER pPool;
 	}ZGTILEMANAGER, *LPZGTILEMANAGER;
 
-	typedef ZGUINT(*ZGTILEMANAGERSET)(
-		ZGUINT uElapsedTime,
-		void* pTileActionObjectData, 
-		void* pTileNodeData, 
-		LPZGTILEMAP pTileMap,
-		ZGUINT uIndex, 
-		ZGUINT uCount, 
-		LPZGTILENODE* ppTileNodes, 
-		void** ppUserData);
-
 	typedef ZGBOOLEAN(*ZGTILEMANAGERHAND)(ZGUINT uTime, void* pUserData);
 
 	typedef void(*ZGTILEMANAGERDELAY)(void* pTileNodeData, ZGUINT uElapsedTime, ZGUINT uTime);
+
+	typedef ZGUINT(*ZGTILEMANAGERPREDICATION)(LPZGTILEMAP pTileMap, ZGUINT uFromIndex, ZGUINT uToIndex);
 
 	ZG_INLINE ZGBOOLEAN ZGTileManagerAdd(LPZGTILEMANAGER pTileManager, LPZGTILEMANAGEROBJECT pTileManagerObject)
 	{
@@ -79,20 +71,14 @@ extern "C" {
 	ZGBOOLEAN ZGTileManagerSet(
 		LPZGTILEMANAGER pTileManager,
 		LPZGTILEMANAGEROBJECT pTileManagerObject,
-		void* pTileActionObjectData,
+		LPZGTILEOBJECTACTION pTileObjectAction,
 		ZGUINT uIndex,
-		ZGUINT uTime,
-		ZGTILEMANAGERSET pfnTileManagerSet);
+		ZGUINT uTime);
 
 	void ZGTileManagerRun(
 		LPZGTILEMANAGER pTileManager, 
 		ZGUINT uTime,
-		ZGUINT uBufferLength,
-		PZGUINT8 puBuffer,
-		ZGTILEACTIONTEST pfnTileActionTest,
-		ZGTILEOBJECTMOVE pfnTileObjectMove, 
 		ZGTILEMANAGERDELAY pfnTileManagerDelay,
-		ZGTILEMANAGERSET pfnTileManagerSet,
 		ZGTILEMANAGERHAND pfnTileManagerHand);
 #ifdef __cplusplus
 }

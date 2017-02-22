@@ -119,7 +119,6 @@
     <ClInclude Include="RBList.h" />
     <ClInclude Include="RBTree.h" />
     <ClInclude Include="RTS.h" />
-    <ClInclude Include="SLG.h" />
     <ClInclude Include="TileAction.h" />
     <ClInclude Include="TileManager.h" />
     <ClInclude Include="TileMap.h" />
@@ -133,7 +132,6 @@
     <ClCompile Include="RBList.c" />
     <ClCompile Include="RBTree.c" />
     <ClCompile Include="RTS.c" />
-    <ClCompile Include="SLG.c" />
     <ClCompile Include="TileAction.c" />
     <ClCompile Include="TileManager.c" />
     <ClCompile Include="TileMap.c" />

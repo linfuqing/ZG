@@ -107,7 +107,7 @@ extern "C" {
 	ZGUINT ZGTileMapSearchDepth(
 		LPZGTILEMAP pTileMap,
 		const ZGTILERANGE* pTileRange,
-		ZGBOOLEAN bIsTest,
+		//ZGBOOLEAN bIsTest,
 		ZGUINT uFromIndex,
 		ZGUINT uToIndex,
 		ZGUINT uMaxDepth,

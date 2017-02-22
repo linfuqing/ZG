@@ -98,8 +98,9 @@ ZGBOOLEAN ZGTileNodeSetTo(
 
 ZGUINT ZGTileNodeSearchDepth(
 	const ZGTILENODE* pTileNode,
-	ZGBOOLEAN bIsTest,
+	//ZGBOOLEAN bIsTest,
 	ZGUINT uIndex, 
+	ZGNODEPREDICATION pfnPredication,
 	ZGMAPTEST pfnMapTest)
 {
 	if (pTileNode == ZG_NULL || pTileNode->pInstance == ZG_NULL)
@@ -108,17 +109,18 @@ ZGUINT ZGTileNodeSearchDepth(
 	return ZGTileMapSearchDepth(
 		pTileNode->pTileMap,
 		&pTileNode->pInstance->Instance,
-		bIsTest, 
+		//bIsTest, 
 		pTileNode->uIndex,
 		uIndex,
 		pTileNode->pInstance->uRange,
 		pTileNode->pInstance->uDistance,
-		ZGTilePredicate, 
+		pfnPredication,
 		pfnMapTest);
 }
 
 ZGUINT ZGTileNodeSearchBreadth(
 	const ZGTILENODE* pTileNode,
+	ZGNODEPREDICATION pfnPredication, 
 	ZGMAPTEST pfnMapTest, 
 	ZGTILEMAPTEST pfnTileMapTest)
 {
@@ -131,7 +133,7 @@ ZGUINT ZGTileNodeSearchBreadth(
 		pTileNode->uIndex,
 		pTileNode->pInstance->uRange,
 		pTileNode->pInstance->uDistance,
-		ZGTilePredicate,
+		pfnPredication,
 		pfnMapTest, 
 		pfnTileMapTest);
 }

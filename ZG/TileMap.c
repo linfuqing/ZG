@@ -58,7 +58,7 @@ void ZGTileRangeInitOblique(LPZGTILERANGE pRange, PZGUINT8 puFlags, ZGUINT uSize
 ZGUINT ZGTileMapSearchDepth(
 	LPZGTILEMAP pTileMap,
 	const ZGTILERANGE* pTileRange,
-	ZGBOOLEAN bIsTest, 
+	//ZGBOOLEAN bIsTest, 
 	ZGUINT uFromIndex,
 	ZGUINT uToIndex,
 	ZGUINT uMaxDepth,
@@ -87,8 +87,8 @@ ZGUINT ZGTileMapSearchDepth(
 		0, 
 		~0, 
 		uMaxDistance, 
-		uMaxDepth, 
-		bIsTest ? ZG_NODE_SEARCH_TYPE_ONCE : ZG_NODE_SEARCH_TYPE_MIN);
+		uMaxDepth/*, 
+		bIsTest ? ZG_NODE_SEARCH_TYPE_ONCE : ZG_NODE_SEARCH_TYPE_MIN*/);
 }
 
 ZGUINT ZGTileMapSearchBreadth(
@@ -120,8 +120,8 @@ ZGUINT ZGTileMapSearchBreadth(
 		0,
 		~0,
 		uMaxDistance,
-		uMaxDepth,
-		ZG_NODE_SEARCH_TYPE_MAX);
+		uMaxDepth/*,
+		ZG_NODE_SEARCH_TYPE_MAX*/);
 }
 
 void ZGTileMapEnable(

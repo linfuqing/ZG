@@ -9,6 +9,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+	typedef void(*ZGRTSHAND)(
+		LPZGTILEOBJECTACTION pTileObjectAction,
+		LPZGTILEMANAGEROBJECT pTileManagerObject,
+		ZGUINT uIndex,
+		ZGUINT uElapsedTime);
+
 	typedef enum ZGRTSObjectAttribute
 	{
 		ZG_RTS_OBJECT_ATTRIBUTE_PARENT,
@@ -21,15 +27,20 @@ extern "C" {
 		ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE = ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + ZG_RTS_ELEMENT_COUNT,
 
 		ZG_RTS_OBJECT_ATTRIBUTE_COUNT = ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + ZG_RTS_ELEMENT_COUNT
-	}ZGRTSOBJECTATTRIBUTE, *LPZGRTSOBJECTATTRIBUTE;
+	}ZGRTSOBJECTATTRIBUTE, *PZGRTSOBJECTATTRIBUTE;
 
-	typedef enum ZGRTSActionAttribute
+	/*typedef enum ZGRTSActionAttribute
 	{
 		ZG_RTS_ACTION_ATTRIBUTE_PARENT,
 		ZG_RTS_ACTION_ATTRIBUTE_ATTACK,
 		ZG_RTS_ACTION_ATTRIBUTE_DEFENSE = ZG_RTS_ACTION_ATTRIBUTE_ATTACK + ZG_RTS_ELEMENT_COUNT,
 		ZG_RTS_ACTION_ATTRIBUTE_COUNT = ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + ZG_RTS_ELEMENT_COUNT
-	}ZGRTSACTIONATTRIBUTE, *LPZGSLGACTIONATTRIBUTE;
+	}ZGRTSACTIONATTRIBUTE, *LPZGSLGACTIONATTRIBUTE;*/
+
+	typedef enum ZGRTSActionType
+	{
+		ZG_RTS_ACTION_TYPE_ACTIVE
+	}ZGRTSACTIONTYPE, *PZGRTSACTIONTYPE;
 
 	typedef enum ZGRTSInfoType
 	{
@@ -87,7 +98,27 @@ extern "C" {
 		ZGUINT uIndex;
 		LPZGTILEOBJECTACTION pTileObjectAction;
 		LPZGTILEMANAGEROBJECT pTileManagerObject;
+
+		ZGRTSHAND pfnInstance;
 	}ZGRTSHANDLER, *LPZGRTSHANDLER;
+
+	typedef struct ZGRTSMapNode
+	{
+		ZGUINT uDistance;
+	}ZGRTSMAPNODE, *LPZGRTSMAPNODE;
+
+	typedef struct ZGRTSActionNormal
+	{
+		ZGUINT uRange;
+		ZGUINT uIndex;
+	}ZGRTSACTIONNORMAL, *LPZGRTSACTIONNORMAL;
+
+	typedef struct ZGRTSActionActive
+	{
+		ZGTILEACTION Instance;
+
+		LPZGTILEOBJECTACTION pTileObjectAction;
+	}ZGRTSACTIONACTIVE, *LPZGRTSACTIONACTIVE;
 
 	ZG_RTS_EXPORT void ZGRTSDestroy(void* pData);
 
@@ -100,6 +131,8 @@ extern "C" {
 		ZGUINT uDistance,
 		ZGUINT uRange,
 		ZGUINT uChildCount);
+
+	ZG_RTS_EXPORT LPZGTILEOBJECTACTION ZGRTSCreateActionNormal(ZGUINT uChildCount);
 
 	ZG_RTS_EXPORT LPZGTILEMAP ZGRTSCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique);
 
@@ -143,6 +176,26 @@ extern "C" {
 			return ZG_NULL;
 
 		return pTileManagerObject->Instance.Instance.uIndex;
+	}
+
+	ZG_RTS_EXPORT ZGUINT ZGRTSGetDistanceFromMap(const ZGTILEMAP* pTileMap, ZGUINT uIndex)
+	{
+		if (pTileMap == ZG_NULL)
+			return 0;
+
+		void* pData = ZGTileMapGetData(pTileMap, uIndex);
+		if (pData == ZG_NULL)
+			return 0;
+
+		pData = ((LPZGTILENODEMAPNODE)pData)->pData;
+		if (pData == ZG_NULL)
+			return 0;
+
+		pData = ((LPZGTILEACTIONMAPNODE)pData)->pData;
+		if (pData == ZG_NULL)
+			return 0;
+
+		return ((LPZGRTSMAPNODE)pData)->uDistance;
 	}
 
 	ZG_RTS_EXPORT LPZGNODE ZGRTSGetMapNodeFromMap(LPZGTILEMAP pTileMap, ZGUINT uIndex)
@@ -198,50 +251,50 @@ extern "C" {
 
 	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetEvaluationToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uEvaluation)
 	{
-		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pInstance == ZG_NULL)
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
 
-		pTileObjectAction->pInstance->uEvaluation = uEvaluation;
+		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Instance.uEvaluation = uEvaluation;
 
 		return ZG_TRUE;
 	}
 
 	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMinEvaluationToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMinEvaluation)
 	{
-		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pInstance == ZG_NULL)
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
 
-		pTileObjectAction->pInstance->uMinEvaluation = uMinEvaluation;
+		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Instance.uMinEvaluation = uMinEvaluation;
 
 		return ZG_TRUE;
 	}
 
 	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxEvaluationToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxEvaluation)
 	{
-		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pInstance == ZG_NULL)
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
 
-		pTileObjectAction->pInstance->uMaxEvaluation = uMaxEvaluation;
+		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Instance.uMaxEvaluation = uMaxEvaluation;
 
 		return ZG_TRUE;
 	}
 
 	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxDistanceToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxDistance)
 	{
-		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pInstance == ZG_NULL)
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
 
-		pTileObjectAction->pInstance->uMaxDistance = uMaxDistance;
+		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Instance.uMaxDistance = uMaxDistance;
 
 		return ZG_TRUE;
 	}
 
 	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxDepthToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxDepth)
 	{
-		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pInstance == ZG_NULL)
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
 
-		pTileObjectAction->pInstance->uMaxDepth = uMaxDepth;
+		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Instance.uMaxDepth = uMaxDepth;
 
 		return ZG_TRUE;
 	}
@@ -261,11 +314,19 @@ extern "C" {
 		if (pTileMap == ZG_NULL)
 			return ZG_FALSE;
 
-		LPZGTILENODEMAPNODE pTileNodeMapNode = (LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, uIndex);
-		if (pTileNodeMapNode == ZG_NULL)
+		void* pData = ZGTileMapGetData(pTileMap, uIndex);
+		if (pData == ZG_NULL)
 			return ZG_FALSE;
 
-		pTileNodeMapNode->uDistance = uDistance;
+		pData = ((LPZGTILENODEMAPNODE)pData)->pData;
+		if (pData == ZG_NULL)
+			return ZG_FALSE;
+
+		pData = ((LPZGTILEACTIONMAPNODE)pData)->pData;
+		if (pData == ZG_NULL)
+			return ZG_FALSE;
+
+		((LPZGRTSMAPNODE)pData)->uDistance = uDistance;
 
 		return ZG_TRUE;
 	}

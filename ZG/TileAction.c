@@ -6,12 +6,13 @@ static const ZGTILERANGE* sg_pTileRange;
 static const ZGTILEMAP* sg_pTileMap;
 
 static const void* sg_pTileNodeData;
+static ZGTILEACTIONEVALUATION sg_pfnTileActionEvaluation;
 static ZGTILEACTIONTEST sg_pfnTileActionTest;
 
 static PZGUINT8 sg_puBuffer;
 static ZGUINT sg_uBufferLength;
 
-ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
+ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 {
 	LPZGTILEMAPNODE pTemp = (LPZGTILEMAPNODE)pMapNode;
 	ZGUINT uTemp = sg_uBufferLength * sizeof(ZGUINT8) / sizeof(ZGUINT), uCount, uLength, uSize, i, j;
@@ -59,9 +60,18 @@ ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
 				}
 
 				if (uLength > 0)
-					return sg_pfnTileActionTest(sg_pTileNodeData, ppTileNodes, uLength) ? (sg_pTileAction->uMinEvaluation + 1) : sg_pTileAction->uMaxEvaluation;
+					return sg_pfnTileActionTest(sg_pTileNodeData, ppTileNodes, uLength) ? 
+					(sg_pTileAction->uMinEvaluation + 1 + (sg_pfnTileActionEvaluation == ZG_NULL ? 0 : sg_pfnTileActionEvaluation(sg_pTileMap, pTemp->uIndex))) :
+					sg_pTileAction->uMaxEvaluation;
 			}
 		}
+	}
+
+	if (sg_pfnTileActionEvaluation != ZG_NULL)
+	{
+		ZGUINT uEvaluation = sg_pfnTileActionEvaluation(sg_pTileMap, pTemp->uIndex);
+		if (uEvaluation > 0)
+			return sg_pTileAction->uMinEvaluation + 1 + uEvaluation;
 	}
 
 	ZGUINT uMaxLength = 0, uMinBit, uIndex;
@@ -148,13 +158,15 @@ ZGUINT __ZGTileActionEvaluateBreadth(void* pMapNode)
 	return sg_pTileAction->uMinEvaluation < uEvaluation ? 0 : sg_pTileAction->uMinEvaluation - uEvaluation + 1;
 }
 
-ZGUINT ZGTileActionSearchBreadth(
+ZGUINT ZGTileActionSearch(
 	const ZGTILEACTION* pTileAction, 
 	LPZGTILENODE pTileNode,
 	ZGUINT uBufferLength,
 	PZGUINT8 puBuffer, 
 	ZGNODEPREDICATION pfnPredication,
-	ZGTILEACTIONTEST pfnTileActionTest)
+	ZGTILEACTIONEVALUATION pfnTileActionEvaluation,
+	ZGTILEACTIONTEST pfnTileActionTest, 
+	ZGNODESEARCHTYPE eType)
 {
 	if (pTileAction == ZG_NULL || pTileNode == ZG_NULL)
 		return 0;
@@ -170,6 +182,7 @@ ZGUINT ZGTileActionSearchBreadth(
 	sg_pTileMap = pTileNode->pTileMap;
 
 	sg_pTileNodeData = pTileNode->pData;
+	sg_pfnTileActionEvaluation = pfnTileActionEvaluation;
 	sg_pfnTileActionTest = pfnTileActionTest;
 
 	sg_uBufferLength = uBufferLength;
@@ -178,10 +191,10 @@ ZGUINT ZGTileActionSearchBreadth(
 	return ZGNodeSearch(
 		pTileNode->pTileMap->pNodes + pTileNode->uIndex,
 		pfnPredication,
-		__ZGTileActionEvaluateBreadth,
+		__ZGTileActionEvaluate,
 		pTileAction->uMinEvaluation,
 		pTileAction->uMaxEvaluation,
 		pTileAction->uMaxDistance,
-		pTileAction->uMaxDepth/*,
-		ZG_NODE_SEARCH_TYPE_MAX*/);
+		pTileAction->uMaxDepth, 
+		eType);
 }

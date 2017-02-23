@@ -192,8 +192,8 @@ ZGUINT ZGNodeSearch(
 	ZGUINT uMinEvaluation,
 	ZGUINT uMaxEvaluation,
 	ZGUINT uMaxDistance,
-	ZGUINT uMaxDepth/*, 
-	ZGNODESEARCHTYPE type*/)
+	ZGUINT uMaxDepth, 
+	ZGNODESEARCHTYPE type)
 {
 	if (pNode == ZG_NULL || pfnEvaluation == ZG_NULL)
 		return 0;
@@ -242,7 +242,7 @@ ZGUINT ZGNodeSearch(
 
 	uMaxDepth = uMaxDepth > 0 ? s_uMinDepth + uMaxDepth : ~0 - 1;
 
-	/*ZGUINT uEvaluation;
+	ZGUINT uEvaluation;
 	switch (type)
 	{
 	case ZG_NODE_SEARCH_TYPE_ONCE:
@@ -256,15 +256,14 @@ ZGUINT ZGNodeSearch(
 		break;
 	default:
 		break;
-	}*/
+	}
 
 	ZGUINT uDepth = __ZGNodeSearch(
 		&s_List, 
 		pNode, 
 		pfnPredication,
 		pfnEvaluation, 
-		//uEvaluation,
-		~0, 
+		uEvaluation,
 		uMinEvaluation, 
 		uMaxEvaluation, 
 		uMaxDistance, 

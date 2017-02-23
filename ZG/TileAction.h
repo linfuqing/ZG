@@ -38,13 +38,15 @@ extern "C" {
 		ZGTILEACTIONANALYZATION pfnAnalyzation;
 	}ZGTILEACTION, *LPZGTILEACTION;
 
-	ZGUINT ZGTileActionSearchBreadth(
+	ZGUINT ZGTileActionSearch(
 		const ZGTILEACTION* pTileAction,
 		LPZGTILENODE pTileNode,
 		ZGUINT uBufferLength,
 		PZGUINT8 puBuffer,
 		ZGNODEPREDICATION pfnPredication,
-		ZGTILEACTIONTEST pfnTileActionTest);
+		ZGTILEACTIONEVALUATION pfnTileActionEvaluation,
+		ZGTILEACTIONTEST pfnTileActionTest, 
+		ZGNODESEARCHTYPE eType);
 #ifdef __cplusplus
 }
 #endif

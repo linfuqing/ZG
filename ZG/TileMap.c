@@ -87,8 +87,8 @@ ZGUINT ZGTileMapSearchDepth(
 		0, 
 		~0, 
 		uMaxDistance, 
-		uMaxDepth/*, 
-		bIsTest ? ZG_NODE_SEARCH_TYPE_ONCE : ZG_NODE_SEARCH_TYPE_MIN*/);
+		uMaxDepth, 
+		ZG_NODE_SEARCH_TYPE_ONCE);
 }
 
 ZGUINT ZGTileMapSearchBreadth(
@@ -120,8 +120,8 @@ ZGUINT ZGTileMapSearchBreadth(
 		0,
 		~0,
 		uMaxDistance,
-		uMaxDepth/*,
-		ZG_NODE_SEARCH_TYPE_MAX*/);
+		uMaxDepth, 
+		ZG_NODE_SEARCH_TYPE_ONCE);
 }
 
 void ZGTileMapEnable(

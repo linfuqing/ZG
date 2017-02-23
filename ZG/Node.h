@@ -10,12 +10,12 @@ extern "C" {
 
 	typedef ZGUINT(*ZGNODEEVALUATION)(void*);
 
-	/*typedef enum ZGNodeSearchType
+	typedef enum ZGNodeSearchType
 	{
 		ZG_NODE_SEARCH_TYPE_ONCE, 
 		ZG_NODE_SEARCH_TYPE_MIN, 
 		ZG_NODE_SEARCH_TYPE_MAX
-	}ZGNODESEARCHTYPE, *LPZGNODESEARCHTYPE;*/
+	}ZGNODESEARCHTYPE, *LPZGNODESEARCHTYPE;
 
 	typedef struct ZGNode
 	{
@@ -46,8 +46,8 @@ extern "C" {
 		ZGUINT uMinEvaluation,
 		ZGUINT uMaxEvaluation,
 		ZGUINT uMaxDistance,
-		ZGUINT uMaxDepth/*,
-		ZGNODESEARCHTYPE type*/);
+		ZGUINT uMaxDepth,
+		ZGNODESEARCHTYPE type);
 
 	void ZGNodeEnable(LPZGNODE pNode);
 

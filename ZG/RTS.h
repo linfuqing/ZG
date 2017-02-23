@@ -3,7 +3,12 @@
 
 #include "TileManager.h"
 
+#ifdef _WIN32 || _WIN64
 # define ZG_RTS_EXPORT __declspec (dllexport)
+#else 
+#define ZG_RTS_EXPORT
+#endif
+
 # define ZG_RTS_ELEMENT_COUNT 2
 
 #ifdef __cplusplus
@@ -127,12 +132,12 @@ extern "C" {
 		ZGUINT uHeight,
 		ZGUINT uOffset);
 
-	ZG_RTS_EXPORT LPZGTILEOBJECTACTION ZGRTSCreateAction(
+	ZG_RTS_EXPORT LPZGTILEOBJECTACTION ZGRTSCreateActionNormal(ZGUINT uChildCount);
+
+	ZG_RTS_EXPORT LPZGTILEOBJECTACTION ZGRTSCreateActionActive(
 		ZGUINT uDistance,
 		ZGUINT uRange,
 		ZGUINT uChildCount);
-
-	ZG_RTS_EXPORT LPZGTILEOBJECTACTION ZGRTSCreateActionNormal(ZGUINT uChildCount);
 
 	ZG_RTS_EXPORT LPZGTILEMAP ZGRTSCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique);
 
@@ -249,7 +254,17 @@ extern "C" {
 		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetEvaluationToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uEvaluation)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetChildToAction(LPZGTILEOBJECTACTION pTileObjectAction, LPZGTILEOBJECTACTION pChild, ZGUINT uIndex)
+	{
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->uChildCount <= uIndex)
+			return ZG_FALSE;
+
+		pTileObjectAction->ppChildren[uIndex] = pChild;
+
+		return ZG_TRUE;
+	}
+
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetEvaluationToActionActive(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uEvaluation)
 	{
 		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
@@ -259,7 +274,7 @@ extern "C" {
 		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMinEvaluationToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMinEvaluation)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMinEvaluationToActionActive(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMinEvaluation)
 	{
 		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
@@ -269,7 +284,7 @@ extern "C" {
 		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxEvaluationToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxEvaluation)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxEvaluationToActionActive(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxEvaluation)
 	{
 		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
@@ -279,7 +294,7 @@ extern "C" {
 		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxDistanceToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxDistance)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxDistanceToActionActive(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxDistance)
 	{
 		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
@@ -289,7 +304,7 @@ extern "C" {
 		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxDepthToAction(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxDepth)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetMaxDepthToActionActive(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uMaxDepth)
 	{
 		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
@@ -299,12 +314,12 @@ extern "C" {
 		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetChildToAction(LPZGTILEOBJECTACTION pTileObjectAction, LPZGTILEOBJECTACTION pChild, ZGUINT uIndex)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetRangeToActionNormal(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uRange)
 	{
-		if (pTileObjectAction == ZG_NULL || pTileObjectAction->uChildCount <= uIndex)
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
 			return ZG_FALSE;
 
-		pTileObjectAction->ppChildren[uIndex] = pChild;
+		((LPZGRTSACTIONNORMAL)pTileObjectAction->pData)->uRange = uRange;
 
 		return ZG_TRUE;
 	}

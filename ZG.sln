@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZGAndroid", "ZGAndroid\ZGAndroid.vcxproj", "{D46498BA-DCF4-427E-BDBD-C9C3E4832F4C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZGLinux", "ZGLinux\ZGLinux.vcxproj", "{69F7502B-A06F-44C5-92AF-B89BB109650A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -25,8 +27,8 @@ Global
 		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Debug|ARM64.ActiveCfg = Debug|Win32
 		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Debug|x64.ActiveCfg = Debug|x64
 		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Debug|x64.Build.0 = Debug|x64
-		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Debug|x86.ActiveCfg = Release|x64
-		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Debug|x86.Build.0 = Release|x64
+		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Debug|x86.ActiveCfg = Debug|Win32
+		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Debug|x86.Build.0 = Debug|Win32
 		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Release|ARM.ActiveCfg = Release|Win32
 		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Release|ARM64.ActiveCfg = Release|Win32
 		{A0E05F7E-B170-4C7C-BE52-114BD8C591F2}.Release|x64.ActiveCfg = Release|x64
@@ -61,6 +63,20 @@ Global
 		{D46498BA-DCF4-427E-BDBD-C9C3E4832F4C}.Release|x64.Build.0 = Release|x64
 		{D46498BA-DCF4-427E-BDBD-C9C3E4832F4C}.Release|x86.ActiveCfg = Release|x86
 		{D46498BA-DCF4-427E-BDBD-C9C3E4832F4C}.Release|x86.Build.0 = Release|x86
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Debug|ARM.ActiveCfg = Debug|ARM
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Debug|ARM.Build.0 = Debug|ARM
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Debug|ARM64.ActiveCfg = Debug|x86
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Debug|x64.ActiveCfg = Debug|x64
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Debug|x64.Build.0 = Debug|x64
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Debug|x86.ActiveCfg = Release|x64
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Debug|x86.Build.0 = Release|x64
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Release|ARM.ActiveCfg = Release|ARM
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Release|ARM.Build.0 = Release|ARM
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Release|ARM64.ActiveCfg = Release|x86
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Release|x64.ActiveCfg = Release|x64
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Release|x64.Build.0 = Release|x64
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Release|x86.ActiveCfg = Release|x86
+		{69F7502B-A06F-44C5-92AF-B89BB109650A}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -327,13 +327,17 @@ ZGUINT __ZGRTSActiveCheck(
 	if (pTileObjectActionData == ZG_NULL)
 		return 0;
 
-	return ZGTileActionSearchBreadth(
+	sg_pTileMap = pTileNode == ZG_NULL ? ZG_NULL : pTileNode->pTileMap;
+
+	return ZGTileActionSearch(
 		&((LPZGRTSACTIONACTIVE)pTileObjectActionData)->Instance,
 		pTileNode,
 		ZG_RTS_BUFFER_SIZE,
 		sg_auBuffer,
-		__ZGRTSPredicate,
-		__ZGRTSTestAction);
+		__ZGRTSPredicate, 
+		ZG_NULL, 
+		__ZGRTSTestAction, 
+		ZG_NODE_SEARCH_TYPE_ONCE);
 }
 
 ZGUINT __ZGRTSNormalCheck(
@@ -534,9 +538,32 @@ LPZGTILEMANAGEROBJECT ZGRTSCreateObject(
 	return pResult;
 }
 
-LPZGTILEOBJECTACTION ZGRTSCreateAction(
+LPZGTILEOBJECTACTION ZGRTSCreateActionNormal(ZGUINT uChildCount)
+{
+	LPZGTILEOBJECTACTION pResult = (LPZGTILEOBJECTACTION)malloc(
+		sizeof(ZGTILEOBJECTACTION) +
+		sizeof(ZGRTSACTIONNORMAL) +
+		sizeof(LPZGTILEOBJECTACTION) * uChildCount);
+	LPZGRTSACTIONNORMAL pActionNormal = (LPZGRTSACTIONNORMAL)(pResult + 1);
+	pResult->pfnCheck = __ZGRTSNormalCheck;
+	pResult->pfnMove = __ZGRTSMove;
+	pResult->pfnSet = ZG_NULL;
+	pResult->pData = pActionNormal;
+	pResult->uChildCount = uChildCount;
+	pResult->ppChildren = (LPZGTILEOBJECTACTION*)(pActionNormal + 1);
+
+	pActionNormal->uIndex = ~0;
+	pActionNormal->uRange = 5;
+
+	for (ZGUINT i = 0; i < uChildCount; ++i)
+		pResult->ppChildren[i] = ZG_NULL;
+
+	return pResult;
+}
+
+LPZGTILEOBJECTACTION ZGRTSCreateActionActive(
 	ZGUINT uDistance,
-	ZGUINT uRange, 
+	ZGUINT uRange,
 	ZGUINT uChildCount)
 {
 	ZGUINT uDistanceLength = (uDistance << 1) + 1, uRangeLength = (uRange << 1) + 1;
@@ -545,9 +572,9 @@ LPZGTILEOBJECTACTION ZGRTSCreateAction(
 	LPZGTILEOBJECTACTION pResult = (LPZGTILEOBJECTACTION)malloc(
 		sizeof(ZGTILEOBJECTACTION) +
 		sizeof(ZGTILEACTIONDATA) +
-		sizeof(ZGRTSACTIONACTIVE) + 
+		sizeof(ZGRTSACTIONACTIVE) +
 		sizeof(ZGUINT8) * uDistanceLength +
-		sizeof(ZGUINT8) * uRangeLength + 
+		sizeof(ZGUINT8) * uRangeLength +
 		sizeof(LPZGTILEOBJECTACTION) * uChildCount);
 	LPZGTILEACTIONDATA pTileActionData = (LPZGTILEACTIONDATA)(pResult + 1);
 	LPZGRTSACTIONACTIVE pActionActive = (LPZGRTSACTIONACTIVE)(pTileActionData + 1);
@@ -578,30 +605,6 @@ LPZGTILEOBJECTACTION ZGRTSCreateAction(
 
 	return pResult;
 }
-
-LPZGTILEOBJECTACTION ZGRTSCreateActionNormal(ZGUINT uChildCount)
-{
-	LPZGTILEOBJECTACTION pResult = (LPZGTILEOBJECTACTION)malloc(
-		sizeof(ZGTILEOBJECTACTION) +
-		sizeof(ZGRTSACTIONNORMAL) +
-		sizeof(LPZGTILEOBJECTACTION) * uChildCount);
-	LPZGRTSACTIONNORMAL pActionNormal = (LPZGRTSACTIONNORMAL)(pResult + 1);
-	pResult->pfnCheck = __ZGRTSNormalCheck;
-	pResult->pfnMove = __ZGRTSMove;
-	pResult->pfnSet = ZG_NULL;
-	pResult->pData = pActionNormal;
-	pResult->uChildCount = uChildCount;
-	pResult->ppChildren = (LPZGTILEOBJECTACTION*)(pActionNormal + 1);
-
-	pActionNormal->uIndex = ~0;
-	pActionNormal->uRange = 5;
-
-	for (ZGUINT i = 0; i < uChildCount; ++i)
-		pResult->ppChildren[i] = ZG_NULL;
-
-	return pResult;
-}
-
 
 LPZGTILEMAP ZGRTSCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
 {

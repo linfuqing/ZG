@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ZG">
+      <UniqueIdentifier>{e8d9572b-54cf-4ced-b918-1780805de873}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\ZG\BitFlag.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\Map.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\Node.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\RBList.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\RBTree.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\RTS.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\TileAction.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\TileManager.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\TileMap.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\TileNode.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ZG\TileObject.c">
+      <Filter>ZG</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ZG\BitFlag.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\Comparsion.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\Core.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\Map.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\Math.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\Node.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\RBList.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\RBTree.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\RTS.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\TileAction.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\TileManager.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\TileMap.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\TileNode.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZG\TileObject.h">
+      <Filter>ZG</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 #include "Map.h"
 #include "Math.h"
-
+ 
 ZGBOOLEAN ZGMapTest(
 	const ZGMAP* pSource, 
 	const ZGMAP* pDestination, 

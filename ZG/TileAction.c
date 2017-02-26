@@ -113,7 +113,7 @@ ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 						if (pTileNode == ZG_NULL)
 							continue;
 
-						if (sg_pTileAction->pfnAnalyzation != ZG_NULL && !sg_pTileAction->pfnAnalyzation(sg_pTileNodeData, pTileNode->pData))
+						if (sg_pTileAction->pfnAnalyzation != ZG_NULL && !sg_pTileAction->pfnAnalyzation(sg_pTileAction->pData, sg_pTileNodeData, pTileNode->pData))
 							continue;
 
 						for (j = 0; j < uLength; ++j)

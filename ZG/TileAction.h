@@ -7,7 +7,7 @@ extern "C" {
 #endif
 	typedef ZGUINT(*ZGTILEACTIONEVALUATION)(const ZGTILEMAP* pTileMap, ZGUINT uIndex);
 	typedef ZGBOOLEAN (*ZGTILEACTIONTEST)(const void* pTileNodeData, const LPZGTILENODE* ppTileNodes, ZGUINT uNodeCount);
-	typedef ZGBOOLEAN (*ZGTILEACTIONANALYZATION)(const void* pSourceTileNodeData, const void* pDestinationTileNodeData);
+	typedef ZGBOOLEAN (*ZGTILEACTIONANALYZATION)(const void* pTileActionData, const void* pSourceTileNodeData, const void* pDestinationTileNodeData);
 
 	typedef struct ZGTileActionMapNode
 	{
@@ -34,6 +34,8 @@ extern "C" {
 		ZGUINT uMaxEvaluation;
 		ZGUINT uMaxDistance;
 		ZGUINT uMaxDepth;
+
+		void* pData;
 
 		ZGTILEACTIONANALYZATION pfnAnalyzation;
 	}ZGTILEACTION, *LPZGTILEACTION;

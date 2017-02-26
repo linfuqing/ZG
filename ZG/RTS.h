@@ -1,10 +1,9 @@
 #pragma once
 
-
 #include "TileManager.h"
 
 #ifdef _WIN32 || _WIN64
-# define ZG_RTS_EXPORT __declspec (dllexport)
+#define ZG_RTS_EXPORT __declspec (dllexport)
 #else 
 #define ZG_RTS_EXPORT
 #endif
@@ -22,8 +21,6 @@ extern "C" {
 
 	typedef enum ZGRTSObjectAttribute
 	{
-		ZG_RTS_OBJECT_ATTRIBUTE_PARENT,
-		ZG_RTS_OBJECT_ATTRIBUTE_CAMP,
 		ZG_RTS_OBJECT_ATTRIBUTE_MOVE_TIME,
 		ZG_RTS_OBJECT_ATTRIBUTE_SET_TIME,
 		ZG_RTS_OBJECT_ATTRIBUTE_HAND_TIME,
@@ -44,8 +41,10 @@ extern "C" {
 
 	typedef enum ZGRTSActionType
 	{
-		ZG_RTS_ACTION_TYPE_ACTIVE
-	}ZGRTSACTIONTYPE, *PZGRTSACTIONTYPE;
+		ZG_RTS_ACTION_TYPE_SELF,
+		ZG_RTS_ACTION_TYPE_ALLY,
+		ZG_RTS_ACTION_TYPE_ENEMY
+	}ZGRTSACTIONTYPE, *LPZGRTSACTIONTYPE;
 
 	typedef enum ZGRTSInfoType
 	{
@@ -58,7 +57,7 @@ extern "C" {
 	typedef struct ZGRTSInfoTarget
 	{
 		LPZGTILEMANAGEROBJECT pTileManagerObject;
-		ZGLONG lHP;
+		ZGINT nHP;
 	}ZGRTSINFOTARGET, *LPZGRTSINFOTARGET;
 
 	typedef struct ZGRTSInfoMove
@@ -112,6 +111,21 @@ extern "C" {
 		ZGUINT uDistance;
 	}ZGRTSMAPNODE, *LPZGRTSMAPNODE;
 
+	typedef struct ZGRTSNode
+	{
+		LPZGTILEMANAGEROBJECT pTileManagerObject;
+		ZGUINT uCamp;
+		ZGUINT uLabel;
+		ZGUINT auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_COUNT];
+	}ZGRTSNODE, *LPZGRTSNODE;
+
+	typedef struct ZGRTSAction
+	{
+		ZGUINT uFlag;
+		ZGUINT uSearchLabel;
+		ZGUINT uSetLabel;
+	}ZGRTSACTION, *LPZGRTSACTION;
+
 	typedef struct ZGRTSActionNormal
 	{
 		ZGUINT uRange;
@@ -121,8 +135,9 @@ extern "C" {
 	typedef struct ZGRTSActionActive
 	{
 		ZGTILEACTION Instance;
-
+		ZGRTSACTION Data;
 		LPZGTILEOBJECTACTION pTileObjectAction;
+		ZGTILEACTIONANALYZATION pfnChecker;
 	}ZGRTSACTIONACTIVE, *LPZGRTSACTIONACTIVE;
 
 	ZG_RTS_EXPORT void ZGRTSDestroy(void* pData);
@@ -167,12 +182,28 @@ extern "C" {
 
 	ZG_RTS_EXPORT LPZGRTSINFO ZGRTSRun(LPZGTILEMANAGER pTileManager, ZGUINT uTime, PZGUINT puInfoCount);
 
-	ZG_RTS_EXPORT ZGUINT ZGRTSGetAttributeFromObjectUINT(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uAttribute)
+	ZG_RTS_EXPORT void ZGRTSSetCampToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uCamp)
+	{
+		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
+			return;
+
+		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uCamp = uCamp;
+	}
+
+	ZG_RTS_EXPORT void ZGRTSSetLabelToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uLabel)
+	{
+		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
+			return;
+
+		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uLabel = uLabel;
+	}
+
+	ZG_RTS_EXPORT ZGUINT ZGRTSGetAttributeFromObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uAttribute)
 	{
 		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
 			return 0;
 
-		return (ZGUINT)((PZGLONG)pTileManagerObject->Instance.Instance.pData)[uAttribute];
+		return ((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->auAttributes[uAttribute];
 	}
 
 	ZG_RTS_EXPORT ZGUINT ZGRTSGetIndexFromObject(LPZGTILEMANAGEROBJECT pTileManagerObject)
@@ -220,12 +251,12 @@ extern "C" {
 		return pNode == ZG_NULL ? ZG_NULL : pNode->pNext;
 	}
 
-	ZG_RTS_EXPORT void ZGRTSSetAttributeToObjectUINT(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uAttribute, ZGUINT uValue)
+	ZG_RTS_EXPORT void ZGRTSSetAttributeToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uAttribute, ZGUINT uValue)
 	{
-		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
+		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL || uAttribute >= ZG_RTS_OBJECT_ATTRIBUTE_COUNT)
 			return;
 
-		((PZGLONG)pTileManagerObject->Instance.Instance.pData)[uAttribute] = uValue;
+		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->auAttributes[uAttribute] = uValue;
 	}
 
 	ZG_RTS_EXPORT void ZGRTSSetDistanceToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uDistance)
@@ -310,6 +341,26 @@ extern "C" {
 			return ZG_FALSE;
 
 		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Instance.uMaxDepth = uMaxDepth;
+
+		return ZG_TRUE;
+	}
+
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetSearchLabelToActionActive(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uSearchLabel)
+	{
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
+			return ZG_FALSE;
+
+		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Data.uSearchLabel = uSearchLabel;
+
+		return ZG_TRUE;
+	}
+
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetSetLabelToActionActive(LPZGTILEOBJECTACTION pTileObjectAction, ZGUINT uSetLabel)
+	{
+		if (pTileObjectAction == ZG_NULL || pTileObjectAction->pData == ZG_NULL)
+			return ZG_FALSE;
+
+		((LPZGRTSACTIONACTIVE)pTileObjectAction->pData)->Data.uSetLabel = uSetLabel;
 
 		return ZG_TRUE;
 	}

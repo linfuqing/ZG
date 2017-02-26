@@ -39,9 +39,41 @@ ZGUINT __ZGRTSPredicate(const void* x, const void* y)
 	return (ZGUINT)roundf(fDistance);
 }
 
-ZGBOOLEAN __ZGRTSAnalyzate(const void* pSourceTileNodeData, const void* pDestinationTileNodeData)
+ZGBOOLEAN __ZGRTSAnalyzate(const void* pTileActionData, const void* pSourceTileNodeData, const void* pDestinationTileNodeData)
 {
-	return ((const ZGLONG*)pSourceTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_CAMP] != ((const ZGLONG*)pDestinationTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_CAMP];
+	if (pTileActionData == ZG_NULL)
+		return ZG_FALSE;
+
+	const ZGRTSACTION* pAction = (const ZGRTSACTION*)pTileActionData;
+	if (ZG_TEST_BIT(pAction->uFlag, ZG_RTS_ACTION_TYPE_SELF))
+		return pSourceTileNodeData == pDestinationTileNodeData;
+
+	if (pDestinationTileNodeData == ZG_NULL)
+		return ZG_FALSE;
+
+	const ZGRTSNODE* pDestination = (const ZGRTSNODE*)pDestinationTileNodeData;
+	if (!ZG_TEST_FLAG(pAction->uSearchLabel, pDestination->uLabel))
+		return ZG_FALSE;
+
+	if (pSourceTileNodeData == ZG_NULL)
+		return ZG_FALSE;
+
+	const ZGRTSNODE* pSource = (const ZGRTSNODE*)pSourceTileNodeData;
+	if(ZG_TEST_BIT(pAction->uFlag, ZG_RTS_ACTION_TYPE_ALLY))
+		return pSource->uCamp == pDestination->uCamp;
+
+	if (ZG_TEST_BIT(pAction->uFlag, ZG_RTS_ACTION_TYPE_ENEMY))
+		return pSource->uCamp != pDestination->uCamp;
+
+	return ZG_FALSE;
+}
+
+ZGBOOLEAN __ZGRTSCheck(const void* pTileActionData, const void* pSourceTileNodeData, const void* pDestinationTileNodeData)
+{
+	if (pTileActionData == ZG_NULL || pDestinationTileNodeData == ZG_NULL)
+		return ZG_FALSE;
+
+	return ZG_TEST_FLAG(((const ZGRTSACTION*)pTileActionData)->uSetLabel, ((const ZGRTSNODE*)pDestinationTileNodeData)->uLabel);
 }
 
 ZGBOOLEAN __ZGRTSTestAction(const void* pTileNodeData, const LPZGTILENODE* ppTileNodes, ZGUINT uNodeCount)
@@ -68,7 +100,7 @@ void __ZGRTSDelay(void* pTileNodeData, ZGUINT uElapsedTime, ZGUINT uTime)
 		pInfo->eType = ZG_RTS_INFO_TYPE_DELAY;
 		pInfo->uElapsedTime = uElapsedTime;
 		pInfo->uTime = uTime;
-		pInfo->pTileManagerObject = (LPZGTILEMANAGEROBJECT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_PARENT];
+		pInfo->pTileManagerObject = ((LPZGRTSNODE)pTileNodeData)->pTileManagerObject;
 	}
 }
 
@@ -102,7 +134,7 @@ ZGUINT __ZGRTSMove(
 	if (pTileNodeData == ZG_NULL)
 		return 0;
 
-	ZGUINT uTime = (ZGUINT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_MOVE_TIME], 
+	ZGUINT uTime = ((LPZGRTSNODE)pTileNodeData)->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_MOVE_TIME], 
 		uFromIndexX = uFromIndex % pTileMap->Instance.uPitch, 
 		uFromIndexY = uFromIndex / pTileMap->Instance.uPitch, 
 		uToIndexX = uToIndex % pTileMap->Instance.uPitch, 
@@ -119,7 +151,7 @@ ZGUINT __ZGRTSMove(
 		pInfo->eType = ZG_RTS_INFO_TYPE_MOVE;
 		pInfo->uElapsedTime = uElapsedTime;
 		pInfo->uTime = uTime;
-		pInfo->pTileManagerObject = (LPZGTILEMANAGEROBJECT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_PARENT];
+		pInfo->pTileManagerObject = ((LPZGRTSNODE)pTileNodeData)->pTileManagerObject;
 		LPZGRTSINFOMOVE pInfoMove = (LPZGRTSINFOMOVE)(sg_auOutput + sg_uOffset);
 
 		sg_uOffset += sizeof(ZGRTSINFOMOVE);
@@ -173,8 +205,8 @@ ZGBOOLEAN __ZGRTSActiveHand(
 			if (pTileNode == ZG_NULL)
 				continue;
 
-			if (pActionActive->Instance.pfnAnalyzation != ZG_NULL &&
-				!pActionActive->Instance.pfnAnalyzation(pTileManagerObject->Instance.Instance.pData, pTileNode->pData))
+			if (pActionActive->pfnChecker != ZG_NULL &&
+				!pActionActive->pfnChecker(pActionActive->Instance.pData, pTileManagerObject->Instance.Instance.pData, pTileNode->pData))
 				continue;
 
 			for (j = 0; j < uLength; ++j)
@@ -226,39 +258,44 @@ ZGBOOLEAN __ZGRTSActiveHand(
 			else
 				pInfoHand = ZG_NULL;
 
-			ZGUINT i, j;
-			ZGLONG lDamage, lHp;
-			LPZGTILENODE pTileNode;
-			LPZGRTSINFOTARGET pInfoTargets = (LPZGRTSINFOTARGET)(sg_auOutput + sg_uOffset);
-
-			for (i = 0; i < uCount; ++i)
+			if (pTileManagerObject->Instance.Instance.pData != ZG_NULL)
 			{
-				pTileNode = ppTileNodes[i];
-				if (pTileNode == ZG_NULL || pTileNode->pData == ZG_NULL)
-					continue;
-
-				lDamage = 0;
-				for (j = 0; j < ZG_RTS_ELEMENT_COUNT; ++j)
-					lDamage += ((PZGLONG)pTileNode->pData)[ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + j] - ((PZGLONG)pTileManagerObject->Instance.Instance.pData)[ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + j];
-
-				lHp = ((PZGLONG)pTileNode->pData)[ZG_RTS_OBJECT_ATTRIBUTE_HP] += lDamage;
-				/*if (lHp <= 0)
-				ZGTileNodeUnset(pTileNode, pTileMap);*/
-
-				if (pInfoHand != ZG_NULL)
+				ZGUINT i, j;
+				ZGINT nHp, nDamage;
+				LPZGTILENODE pTileNode;
+				LPZGRTSNODE pSource, pDestination = (LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData;
+				LPZGRTSINFOTARGET pInfoTargets = (LPZGRTSINFOTARGET)(sg_auOutput + sg_uOffset);
+				for (i = 0; i < uCount; ++i)
 				{
-					sg_uOffset += sizeof(ZGRTSINFOTARGET);
-					if (sg_uOffset <= ZG_RTS_BUFFER_SIZE)
+					pTileNode = ppTileNodes[i];
+					if (pTileNode == ZG_NULL || pTileNode->pData == ZG_NULL)
+						continue;
+
+					pSource = (LPZGRTSNODE)pTileNode->pData;
+
+					nDamage = 0;
+					for (j = 0; j < ZG_RTS_ELEMENT_COUNT; ++j)
+						nDamage += pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + j] - pDestination->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + j];
+
+					nHp = pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_HP] += nDamage;
+					/*if (lHp <= 0)
+					ZGTileNodeUnset(pTileNode, pTileMap);*/
+
+					if (pInfoHand != ZG_NULL)
 					{
-						pInfoTargets->pTileManagerObject = (LPZGTILEMANAGEROBJECT)((PZGLONG)pTileNode->pData)[ZG_RTS_OBJECT_ATTRIBUTE_PARENT];
-						pInfoTargets->lHP = lDamage;
+						sg_uOffset += sizeof(ZGRTSINFOTARGET);
+						if (sg_uOffset <= ZG_RTS_BUFFER_SIZE)
+						{
+							pInfoTargets->pTileManagerObject = pSource->pTileManagerObject;
+							pInfoTargets->nHP = nHp;
 
-						if (pInfoHand->pTargets == ZG_NULL)
-							pInfoHand->pTargets = pInfoTargets;
+							if (pInfoHand->pTargets == ZG_NULL)
+								pInfoHand->pTargets = pInfoTargets;
 
-						++pInfoTargets;
+							++pInfoTargets;
 
-						++pInfoHand->uTargetCount;
+							++pInfoHand->uTargetCount;
+						}
 					}
 				}
 			}
@@ -282,27 +319,27 @@ ZGUINT __ZGRTSActiveSet(
 		return 0;
 
 	LPZGTILEOBJECTACTION pTileObjectAction = ((LPZGRTSACTIONACTIVE)pTileObjectActionData)->pTileObjectAction;
-	LPZGTILEMANAGEROBJECT pTileManagerObject = (LPZGTILEMANAGEROBJECT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_PARENT];
+	LPZGRTSNODE pNode = (LPZGRTSNODE)pTileNodeData;
 	LPZGTILEACTIONMAPNODE pTileActionMapNode = (LPZGTILEACTIONMAPNODE)((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileMap, uIndex))->pData;
 	if (ppUserData != ZG_NULL && *ppUserData != ZG_NULL)
 	{
 		LPZGRTSHANDLER pHandler = (LPZGRTSHANDLER)(*ppUserData);
-		pHandler->uTime = uElapsedTime + (ZGUINT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_HAND_TIME];
+		pHandler->uTime = uElapsedTime + pNode->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_HAND_TIME];
 		pHandler->uIndex = pTileActionMapNode->uMaxIndex;
 		pHandler->pTileObjectAction = pTileObjectAction;
-		pHandler->pTileManagerObject = pTileManagerObject;
+		pHandler->pTileManagerObject = pNode->pTileManagerObject;
 		pHandler->pfnInstance = __ZGRTSActiveHand;
 		*ppUserData = pHandler;
 	}
 
-	ZGUINT uTime = (ZGUINT)((PZGLONG)pTileNodeData)[ZG_RTS_OBJECT_ATTRIBUTE_SET_TIME];
+	ZGUINT uTime = pNode->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_SET_TIME];
 	if (sg_uCount < ZG_RTS_INFO_SIZE)
 	{
 		LPZGRTSINFO pInfo = &sg_aInfos[sg_uCount++];
 		pInfo->eType = ZG_RTS_INFO_TYPE_SET;
 		pInfo->uElapsedTime = uElapsedTime;
 		pInfo->uTime = uTime;
-		pInfo->pTileManagerObject = pTileManagerObject;
+		pInfo->pTileManagerObject = pNode->pTileManagerObject;
 		LPZGRTSINFOSET pInfoSet = (LPZGRTSINFOSET)(sg_auOutput + sg_uOffset);
 
 		sg_uOffset += sizeof(ZGRTSINFOSET);
@@ -495,13 +532,13 @@ LPZGTILEMANAGEROBJECT ZGRTSCreateObject(
 		sizeof(ZGTILEMANAGEROBJECT) +
 		sizeof(ZGTILENODEDATA) +
 		sizeof(ZGUINT8) * uLength +
-		sizeof(ZGLONG) * ZG_RTS_OBJECT_ATTRIBUTE_COUNT);
+		sizeof(ZGRTSNODE));
 	LPZGTILENODEDATA pTileNodeData = (LPZGTILENODEDATA)(pResult + 1);
 	PZGUINT8 puFlags = (PZGUINT8)(pTileNodeData + 1);
-	PZGLONG plAttributes = (PZGLONG)(puFlags + uLength);
+	LPZGRTSNODE pNode = (LPZGRTSNODE)(puFlags + uLength);
 
 	pResult->Instance.Instance.pInstance = pTileNodeData;
-	pResult->Instance.Instance.pData = plAttributes;
+	pResult->Instance.Instance.pData = pNode;
 	pResult->Instance.Instance.pTileMap = ZG_NULL;
 	pResult->Instance.Instance.uIndex = ~0;
 
@@ -530,10 +567,12 @@ LPZGTILEMANAGEROBJECT ZGRTSCreateObject(
 	uCount &= 7;
 	puFlags[uLength] = uCount > 0 ? (1 << uCount) - 1 : ~0;
 
-	for (ZGUINT i = 0; i < ZG_RTS_OBJECT_ATTRIBUTE_COUNT; ++i)
-		plAttributes[i] = 0;
+	pNode->pTileManagerObject = pResult;
+	pNode->uCamp = 0;
+	pNode->uLabel = 0;
 
-	plAttributes[ZG_RTS_OBJECT_ATTRIBUTE_PARENT] = (ZGLONG)pResult;
+	for (ZGUINT i = 0; i < ZG_RTS_OBJECT_ATTRIBUTE_COUNT; ++i)
+		pNode->auAttributes[i] = 0;
 
 	return pResult;
 }
@@ -595,10 +634,16 @@ LPZGTILEOBJECTACTION ZGRTSCreateActionActive(
 	pActionActive->Instance.uMaxEvaluation = 0;
 	pActionActive->Instance.uMaxDistance = 0;
 	pActionActive->Instance.uMaxDepth = 0;
-
+	pActionActive->Instance.pData = &pActionActive->Data;
 	pActionActive->Instance.pfnAnalyzation = __ZGRTSAnalyzate;
 
+	pActionActive->Data.uFlag = 1 << ZG_RTS_ACTION_TYPE_ENEMY;
+	pActionActive->Data.uSearchLabel = 1;
+	pActionActive->Data.uSetLabel = 1;
+
 	pActionActive->pTileObjectAction = pResult;
+
+	pActionActive->pfnChecker = __ZGRTSCheck;
 
 	for (ZGUINT i = 0; i < uChildCount; ++i)
 		pResult->ppChildren[i] = ZG_NULL;

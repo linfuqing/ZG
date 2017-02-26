@@ -2,6 +2,7 @@
 
 #include "Core.h"
 
+#define ZG_TEST_FLAG(x, y) (((x) & (y)) != 0)
 #define ZG_TEST_BIT(uFlag, uBit) (((uFlag) & (1 << (uBit))) != 0)
 #define ZG_SET_BIT(uFlag, uBit) (uFlag |= (1 << (uBit)))
 

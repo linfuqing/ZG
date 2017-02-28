@@ -182,20 +182,20 @@ extern "C" {
 
 	ZG_RTS_EXPORT LPZGRTSINFO ZGRTSRun(LPZGTILEMANAGER pTileManager, ZGUINT uTime, PZGUINT puInfoCount);
 
-	ZG_RTS_EXPORT void ZGRTSSetCampToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uCamp)
+	ZG_RTS_EXPORT ZGUINT ZGRTSGetCampToObject(LPZGTILEMANAGEROBJECT pTileManagerObject)
 	{
 		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
-			return;
+			return 0;
 
-		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uCamp = uCamp;
+		return ((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uCamp;
 	}
 
-	ZG_RTS_EXPORT void ZGRTSSetLabelToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uLabel)
+	ZG_RTS_EXPORT ZGUINT ZGRTSGetLabelToObject(LPZGTILEMANAGEROBJECT pTileManagerObject)
 	{
 		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
-			return;
+			return 0;
 
-		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uLabel = uLabel;
+		return ((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uLabel;
 	}
 
 	ZG_RTS_EXPORT ZGUINT ZGRTSGetAttributeFromObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uAttribute)
@@ -251,28 +251,54 @@ extern "C" {
 		return pNode == ZG_NULL ? ZG_NULL : pNode->pNext;
 	}
 
-	ZG_RTS_EXPORT void ZGRTSSetAttributeToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uAttribute, ZGUINT uValue)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetCampToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uCamp)
+	{
+		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
+			return ZG_FALSE;
+
+		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uCamp = uCamp;
+
+		return ZG_TRUE;
+	}
+
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetLabelToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uLabel)
+	{
+		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
+			return ZG_FALSE;
+
+		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uLabel = uLabel;
+
+		return ZG_TRUE;
+	}
+
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetAttributeToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uAttribute, ZGUINT uValue)
 	{
 		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL || uAttribute >= ZG_RTS_OBJECT_ATTRIBUTE_COUNT)
-			return;
+			return ZG_FALSE;
 
 		((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->auAttributes[uAttribute] = uValue;
+
+		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT void ZGRTSSetDistanceToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uDistance)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetDistanceToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uDistance)
 	{
 		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pInstance == ZG_NULL)
-			return;
+			return ZG_FALSE;
 
 		pTileManagerObject->Instance.Instance.pInstance->uDistance = uDistance;
+
+		return ZG_TRUE;
 	}
 
-	ZG_RTS_EXPORT void ZGRTSSetRangeToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uRange)
+	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetRangeToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uRange)
 	{
 		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pInstance == ZG_NULL)
-			return;
+			return ZG_FALSE;
 
 		pTileManagerObject->Instance.Instance.pInstance->uRange = uRange;
+
+		return ZG_TRUE;
 	}
 
 	ZG_RTS_EXPORT ZGBOOLEAN ZGRTSSetActionToObject(LPZGTILEMANAGEROBJECT pTileManagerObject, LPZGTILEOBJECTACTION pActions)

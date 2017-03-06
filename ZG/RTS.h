@@ -57,7 +57,7 @@ extern "C" {
 	typedef struct ZGRTSInfoTarget
 	{
 		LPZGTILEMANAGEROBJECT pTileManagerObject;
-		ZGINT nHP;
+		ZGINT nDamage;
 	}ZGRTSINFOTARGET, *LPZGRTSINFOTARGET;
 
 	typedef struct ZGRTSInfoMove

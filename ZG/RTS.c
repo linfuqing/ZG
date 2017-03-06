@@ -260,8 +260,8 @@ ZGBOOLEAN __ZGRTSActiveHand(
 
 			if (pTileManagerObject->Instance.Instance.pData != ZG_NULL)
 			{
-				ZGUINT i, j;
-				ZGINT nHp, nDamage;
+				ZGUINT i, j, uSource, uDestination;
+				ZGINT nDamage;
 				LPZGTILENODE pTileNode;
 				LPZGRTSNODE pSource, pDestination = (LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData;
 				LPZGRTSINFOTARGET pInfoTargets = (LPZGRTSINFOTARGET)(sg_auOutput + sg_uOffset);
@@ -275,9 +275,13 @@ ZGBOOLEAN __ZGRTSActiveHand(
 
 					nDamage = 0;
 					for (j = 0; j < ZG_RTS_ELEMENT_COUNT; ++j)
-						nDamage += pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + j] - pDestination->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + j];
+					{
+						uSource = pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + j];
+						uDestination = pDestination->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + j];
+						nDamage -= uSource < uDestination ? uDestination - uSource : 0;
+					}
 
-					nHp = pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_HP] += nDamage;
+					pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_HP] += nDamage;
 					/*if (lHp <= 0)
 					ZGTileNodeUnset(pTileNode, pTileMap);*/
 
@@ -287,7 +291,7 @@ ZGBOOLEAN __ZGRTSActiveHand(
 						if (sg_uOffset <= ZG_RTS_BUFFER_SIZE)
 						{
 							pInfoTargets->pTileManagerObject = pSource->pTileManagerObject;
-							pInfoTargets->nHP = nHp;
+							pInfoTargets->nDamage = nDamage;
 
 							if (pInfoHand->pTargets == ZG_NULL)
 								pInfoHand->pTargets = pInfoTargets;

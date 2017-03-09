@@ -190,7 +190,7 @@ extern "C" {
 		return ((LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData)->uCamp;
 	}
 
-	ZG_RTS_EXPORT ZGUINT ZGRTSGetLabelToObject(LPZGTILEMANAGEROBJECT pTileManagerObject)
+	ZG_RTS_EXPORT ZGUINT ZGRTSGetLabelFromObject(LPZGTILEMANAGEROBJECT pTileManagerObject)
 	{
 		if (pTileManagerObject == ZG_NULL || pTileManagerObject->Instance.Instance.pData == ZG_NULL)
 			return 0;

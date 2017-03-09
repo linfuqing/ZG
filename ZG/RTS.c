@@ -804,6 +804,15 @@ ZGBOOLEAN ZGRTSDo(
 	sg_uOffset = 0;
 	sg_uCount = 0;
 
+	void* pData = ZGTileMapGetData(pTileManagerObject->Instance.Instance.pTileMap, uIndex);
+	pData = pData == ZG_NULL ? ZG_NULL : ((LPZGTILENODEMAPNODE)pData)->pData;
+	if (pData != ZG_NULL)
+	{
+		LPZGTILEACTIONMAPNODE pTileActionMapNode = (LPZGTILEACTIONMAPNODE)pData;
+		pTileActionMapNode->uMaxCount = 0;
+		pTileActionMapNode->uMaxIndex = uIndex;
+	}
+
 	ZGBOOLEAN bResult = ZGTileManagerSet(pTileManager, pTileManagerObject, pTileManagerObject->Instance.pActions, uIndex, uTime);
 
 	if (puInfoCount != ZG_NULL)

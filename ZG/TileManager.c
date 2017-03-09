@@ -115,8 +115,8 @@ void ZGTileManagerRun(
 					pTail->pNext = sg_pPool;
 					sg_pPool = pTail;
 				}
-
-				sg_pTail = sg_pTail->pNext;
+				else
+					sg_pTail = sg_pTail->pNext;
 			}
 		}
 	}
@@ -138,31 +138,30 @@ void ZGTileManagerRun(
 			pfnTileManagerDelay(pTileManagerObject->Instance.Instance.pData, uTime - uDelayTime, uDelayTime);
 	}
 
-	if (pTail == ZG_NULL)
-		pTail = sg_pHead;
-	else
-		pTail = pTail->pNext;
-
 	if(pfnTileManagerHand != ZG_NULL)
 	{
 		sg_pTail = pTail;
-		while (sg_pTail != ZG_NULL && !pfnTileManagerHand(uTime, sg_pTail->pUserData))
+		if (sg_pTail == ZG_NULL)
 		{
-			pTail = sg_pTail;
-			sg_pTail = sg_pTail->pNext;
+			sg_pTail = sg_pHead;
+			while (sg_pTail != ZG_NULL && !pfnTileManagerHand(uTime, sg_pTail->pUserData))
+			{
+				pTail = sg_pTail;
+				sg_pTail = sg_pTail->pNext;
 
-			pTail->pNext = sg_pPool;
-			sg_pPool = pTail;
-
-			if(sg_pHead == pTail)
-				sg_pHead = sg_pTail;
+				pTail->pNext = sg_pPool;
+				sg_pPool = pTail;
+			}
+			sg_pHead = sg_pTail;
 		}
 
 		if (sg_pTail != ZG_NULL)
 		{
 			while (sg_pTail->pNext != ZG_NULL)
 			{
-				if (!pfnTileManagerHand(uTime, sg_pTail->pNext->pUserData))
+				if (pfnTileManagerHand(uTime, sg_pTail->pNext->pUserData))
+					sg_pTail = sg_pTail->pNext;
+				else
 				{
 					pTail = sg_pTail->pNext;
 					sg_pTail->pNext = pTail->pNext;
@@ -171,7 +170,6 @@ void ZGTileManagerRun(
 					sg_pPool = pTail;
 				}
 
-				sg_pTail = sg_pTail->pNext;
 			}
 		}
 	}

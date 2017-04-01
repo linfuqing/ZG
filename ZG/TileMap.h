@@ -19,8 +19,15 @@ extern "C" {
 		void* pData;
 	}ZGTILEMAPNODE, *LPZGTILEMAPNODE;
 
+	typedef struct ZGTileMapBridge
+	{
+		ZGUINT uFromIndex;
+		ZGUINT uToIndex;
+	}ZGTILEMAPBRIDGE, *LPZGTILEMAPBRIDGE;
+
 	typedef struct ZGTileMap
 	{
+		ZGUINT uLevel;
 		ZGMAP Instance;
 		LPZGNODE pNodes;
 	}ZGTILEMAP, *LPZGTILEMAP;
@@ -67,7 +74,15 @@ extern "C" {
 			uNormal = 4;
 		}
 
-		return (uCorner << 2) + uEdge * ((uWidth + uHeight - 4) << 1) + uNormal * (uWidth - 1) * (uHeight - 1);
+		if (uWidth == 1)
+			return (uCorner << 1) + uEdge * (uHeight - 2);
+
+		if (uHeight == 1)
+			return (uCorner << 1) + uEdge * (uWidth - 2);
+
+		return (uCorner << 2) + 
+			uEdge * ((uWidth + uHeight - 4) << 1) + 
+			uNormal * (uWidth - 2) * (uHeight - 2);
 	}
 
 	ZG_INLINE ZGBOOLEAN ZGTileMapSet(const ZGTILEMAP* pTileMap, ZGUINT uIndex, ZGBOOLEAN bValue)
@@ -86,12 +101,16 @@ extern "C" {
 		return ZGMapGet(&pTileMap->Instance, uIndex);
 	}
 
-	ZG_INLINE void ZGTileMapSetData(const ZGTILEMAP* pTileMap, ZGUINT uIndex, void* pData)
+	ZG_INLINE ZGBOOLEAN ZGTileMapSetData(const ZGTILEMAP* pTileMap, ZGUINT uIndex, void* pData)
 	{
 		if (pTileMap == ZG_NULL || pTileMap->Instance.Instance.uCount <= uIndex)
-			return;
+			return ZG_FALSE;
 
-		((LPZGTILEMAPNODE)(pTileMap->pNodes + uIndex)->pData)->pData = pData;
+		void* pNode = (pTileMap->pNodes + uIndex)->pData;
+		if (pNode == ZG_NULL)
+			return ZG_FALSE;
+
+		((LPZGTILEMAPNODE)pNode)->pData = pData;
 	}
 
 	ZG_INLINE void* ZGTileMapGetData(const ZGTILEMAP* pTileMap, ZGUINT uIndex)
@@ -99,7 +118,11 @@ extern "C" {
 		if (pTileMap == ZG_NULL || pTileMap->Instance.Instance.uCount <= uIndex)
 			return ZG_NULL;
 
-		return ((LPZGTILEMAPNODE)(pTileMap->pNodes + uIndex)->pData)->pData;
+		void* pNode = (pTileMap->pNodes + uIndex)->pData;
+		if (pNode == ZG_NULL)
+			return ZG_NULL;
+
+		return ((LPZGTILEMAPNODE)pNode)->pData;
 	}
 
 	void ZGTileRangeInitOblique(LPZGTILERANGE pRange, PZGUINT8 puFlags, ZGUINT uSize);
@@ -131,8 +154,11 @@ extern "C" {
 		LPZGNODE* ppNodes,
 		LPZGNODE pNodes,
 		LPZGTILEMAPNODE pMapNodes,
+		LPZGTILEMAPBRIDGE pMapBridges, 
+		ZGUINT uBridgeLength, 
 		ZGUINT uWidth,
 		ZGUINT uHeight,
+		ZGUINT uDepth, 
 		ZGBOOLEAN bIsOblique);
 
 	void ZGTileMapDisable(LPZGTILEMAP pTileMap);

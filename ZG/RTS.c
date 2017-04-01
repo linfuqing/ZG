@@ -15,6 +15,7 @@ static ZGUINT8 sg_auOutput[ZG_RTS_OUTPUT_SIZE];
 static ZGRTSINFO sg_aInfos[ZG_RTS_INFO_SIZE];
 static ZGUINT sg_uOffset;
 static ZGUINT sg_uCount;
+static ZGUINT sg_uLevelSize;
 static const ZGTILEMAP* sg_pTileMap;
 
 ZGUINT __ZGRTSPredicate(const void* x, const void* y)
@@ -26,14 +27,19 @@ ZGUINT __ZGRTSPredicate(const void* x, const void* y)
 	ZGFLOAT fDistance = (ZGRTSGetDistanceFromMap(sg_pTileMap, uFromIndex) + ZGRTSGetDistanceFromMap(sg_pTileMap, uToIndex)) * 0.5f;
 	if (sg_pTileMap != ZG_NULL)
 	{
-		ZGUINT uFromIndexX = uFromIndex % sg_pTileMap->Instance.uPitch,
-			uFromIndexY = uFromIndex / sg_pTileMap->Instance.uPitch,
-			uToIndexX = uToIndex % sg_pTileMap->Instance.uPitch,
-			uToIndexY = uToIndex / sg_pTileMap->Instance.uPitch,
-			uDistanceX = ZG_ABS(uFromIndexX, uToIndexX),
-			uDistanceY = ZG_ABS(uFromIndexY, uToIndexY);
+		ZGUINT uFromLevel = uFromIndex / sg_uLevelSize,
+			uFromMapIndex = uFromIndex - uFromLevel * sg_uLevelSize,
+			uFromMapIndexX = uFromMapIndex % sg_pTileMap->Instance.uPitch,
+			uFromMapIndexY = uFromMapIndex / sg_pTileMap->Instance.uPitch,
+			uToLevel = uToIndex / sg_uLevelSize,
+			uToMapIndex = uToIndex - uToLevel * sg_uLevelSize, 
+			uToMapIndexX = uToMapIndex % sg_pTileMap->Instance.uPitch,
+			uToMapIndexY = uToMapIndex / sg_pTileMap->Instance.uPitch,
+			uDistanceX = ZG_ABS(uFromMapIndexX, uToMapIndexX),
+			uDistanceY = ZG_ABS(uFromMapIndexY, uToMapIndexY), 
+			uDistanceZ = ZG_ABS(uFromLevel, uToLevel);
 
-		fDistance += sqrtf((ZGFLOAT)(uDistanceX * uDistanceX + uDistanceY * uDistanceY));
+		fDistance += sqrtf((ZGFLOAT)(uDistanceX * uDistanceX + uDistanceY * uDistanceY + uDistanceZ * uDistanceZ));
 	}
 
 	return (ZGUINT)roundf(fDistance);
@@ -131,20 +137,26 @@ ZGUINT __ZGRTSMove(
 	ZGUINT uFromIndex, 
 	ZGUINT uToIndex)
 {
-	if (pTileNodeData == ZG_NULL)
+	if (pTileNodeData == ZG_NULL || pTileMap == ZG_NULL)
 		return 0;
 
-	ZGUINT uTime = ((LPZGRTSNODE)pTileNodeData)->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_MOVE_TIME], 
-		uFromIndexX = uFromIndex % pTileMap->Instance.uPitch, 
-		uFromIndexY = uFromIndex / pTileMap->Instance.uPitch, 
-		uToIndexX = uToIndex % pTileMap->Instance.uPitch, 
-		uToIndexY = uToIndex / pTileMap->Instance.uPitch, 
-		uDistanceX = ZG_ABS(uFromIndexX, uToIndexX), 
-		uDistanceY = ZG_ABS(uFromIndexY, uToIndexY);
+	ZGUINT uTime = ((LPZGRTSNODE)pTileNodeData)->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_MOVE_TIME],
+		uLevelSize = pTileMap->Instance.Instance.uCount / pTileMap->uLevel, 
+		uFromLevel = uFromIndex / uLevelSize,
+		uFromMapIndex = uFromIndex - uFromLevel * uLevelSize, 
+		uFromMapIndexX = uFromMapIndex % pTileMap->Instance.uPitch,
+		uFromMapIndexY = uFromMapIndex / pTileMap->Instance.uPitch,
+		uToLevel = uToIndex / uLevelSize,
+		uToMapIndex = uToIndex - uToLevel * uLevelSize,
+		uToMapIndexX = uToMapIndex % pTileMap->Instance.uPitch,
+		uToMapIndexY = uToMapIndex / pTileMap->Instance.uPitch,
+		uDistanceX = ZG_ABS(uFromMapIndexX, uToMapIndexX), 
+		uDistanceY = ZG_ABS(uFromMapIndexY, uToMapIndexY), 
+		uDistanceZ = ZG_ABS(uFromLevel, uToLevel);
 	uTime = (ZGUINT)roundf(
 		uTime * 
 		((ZGRTSGetDistanceFromMap(pTileMap, uFromIndex) + ZGRTSGetDistanceFromMap(pTileMap, uToIndex)) * 0.5f + 
-			sqrtf((ZGFLOAT)(uDistanceX * uDistanceX + uDistanceY * uDistanceY))));
+			sqrtf((ZGFLOAT)(uDistanceX * uDistanceX + uDistanceY * uDistanceY + uDistanceZ * uDistanceZ))));
 	if (sg_uCount < ZG_RTS_INFO_SIZE)
 	{
 		LPZGRTSINFO pInfo = &sg_aInfos[sg_uCount++];
@@ -186,129 +198,159 @@ ZGBOOLEAN __ZGRTSActiveHand(
 		return ZG_FALSE;
 
 	LPZGRTSACTIONACTIVE pActionActive = (LPZGRTSACTIONACTIVE)pTileObjectAction->pData;
+	if (pActionActive->Instance.pInstance == ZG_NULL)
+		return ZG_FALSE;
 
-	ZGUINT uCount = ZG_RTS_BUFFER_SIZE * sizeof(ZGUINT8) / sizeof(ZGUINT);
-	PZGUINT puIndices = (PZGUINT)sg_auBuffer;
-	if (ZGMapTest(
-		&pTileManagerObject->Instance.Instance.pTileMap->Instance,
-		&pActionActive->Instance.pInstance->Instance.Instance,
-		uIndex,
-		pActionActive->Instance.pInstance->Instance.uOffset,
-		&uCount,
-		puIndices))
+	ZGMAP Map = pTileManagerObject->Instance.Instance.pTileMap->Instance;
+	Map.Instance.uCount /= pTileManagerObject->Instance.Instance.pTileMap->uLevel;
+	ZGUINT uLevel = uIndex / Map.Instance.uCount,
+		uOffset = uLevel * Map.Instance.uCount;
+
+	ZGUINT uLevelCount = pActionActive->Instance.pInstance->uLevelCount;
+	PZGUINT puLevelIndices;
+	if (uLevelCount > 0)
+		puLevelIndices = pActionActive->Instance.pInstance->puLevelIndices;
+	else
+		puLevelIndices = &uLevel;
+
+	ZGBOOLEAN bResult = ZG_FALSE;
+	ZGUINT uMapIndex = uIndex - uOffset,
+		uTemp = ZG_RTS_BUFFER_SIZE * sizeof(ZGUINT8) / sizeof(ZGUINT), 
+		uCount, 
+		uSize, 
+		uLength, 
+		uSource, 
+		uDestination, 
+		i, j, k;
+	ZGINT nDamage;
+	PZGUINT puIndices;
+	LPZGTILENODE pTileNode, *ppTileNodes;
+	LPZGRTSINFOHAND pInfoHand;
+	LPZGRTSINFO pInfo;
+	LPZGRTSNODE pSource, pDestination = (LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData;
+	LPZGRTSINFOTARGET pInfoTargets = (LPZGRTSINFOTARGET)(sg_auOutput + sg_uOffset);
+	for (i = 0; i < uLevelCount; ++i)
 	{
-		ZGUINT uSize = uCount * sizeof(ZGUINT) + sizeof(LPZGTILENODE), uLength = 0, i, j;
-		LPZGTILENODE *ppTileNodes = (LPZGTILENODE*)(puIndices + uCount), pTileNode;
-		for (i = 0; i < uCount; ++i)
+		uOffset = puLevelIndices[i] * Map.Instance.uCount;
+		Map.Instance.uOffset = pTileManagerObject->Instance.Instance.pTileMap->Instance.Instance.uOffset + uOffset;
+		uCount = uTemp;
+		puIndices = (PZGUINT)sg_auBuffer;
+		if (ZGMapTest(
+			&Map,
+			&pActionActive->Instance.pInstance->Instance.Instance,
+			uMapIndex,
+			pActionActive->Instance.pInstance->Instance.uOffset,
+			&uCount,
+			puIndices))
 		{
-			pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileManagerObject->Instance.Instance.pTileMap, puIndices[i]))->pNode;
-			if (pTileNode == ZG_NULL)
-				continue;
-
-			if (pActionActive->pfnChecker != ZG_NULL &&
-				!pActionActive->pfnChecker(pActionActive->Instance.pData, pTileManagerObject->Instance.Instance.pData, pTileNode->pData))
-				continue;
-
-			for (j = 0; j < uLength; ++j)
+			uSize = uCount * sizeof(ZGUINT) + sizeof(LPZGTILENODE);
+			uLength = 0;
+			ppTileNodes = (LPZGTILENODE*)(puIndices + uCount);
+			for (j = 0; j < uCount; ++j)
 			{
-				if (ppTileNodes[j] == pTileNode)
-					break;
-			}
+				pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileManagerObject->Instance.Instance.pTileMap, puIndices[j] + uOffset))->pNode;
+				if (pTileNode == ZG_NULL)
+					continue;
 
-			if (j < uLength)
-				continue;
+				if (pActionActive->pfnChecker != ZG_NULL &&
+					!pActionActive->pfnChecker(pActionActive->Instance.pData, pTileManagerObject->Instance.Instance.pData, pTileNode->pData))
+					continue;
 
-			if (uSize > ZG_RTS_BUFFER_SIZE)
-				++uLength;
-			else
-			{
-				ppTileNodes[uLength++] = pTileNode;
-
-				uSize += sizeof(LPZGTILENODE);
-			}
-		}
-
-		if (uLength > 0)
-		{
-			//__ZGRTSDo(pTileObjectAction->pData, pTileManagerObject->Instance.Instance.pData, pTileMap, uIndex, uLength, ppTileNodes);
-			LPZGRTSINFOHAND pInfoHand;
-			if (sg_uCount < ZG_RTS_INFO_SIZE)
-			{
-				LPZGRTSINFO pInfo = &sg_aInfos[sg_uCount++];
-				pInfo->eType = ZG_RTS_INFO_TYPE_HAND;
-				pInfo->uElapsedTime = uElapsedTime;
-				pInfo->uTime = 0;
-				pInfo->pTileManagerObject = pTileManagerObject;
-
-				pInfoHand = (LPZGRTSINFOHAND)(sg_auOutput + sg_uOffset);
-
-				sg_uOffset += sizeof(ZGRTSINFOHAND);
-				if (sg_uOffset > ZG_RTS_OUTPUT_SIZE)
-					pInfoHand = ZG_NULL;
-				else
+				for (k = 0; k < uLength; ++k)
 				{
-					pInfoHand->uIndex = uIndex;
-					pInfoHand->pTileObjectAction = pTileObjectAction;
-					pInfoHand->uTargetCount = 0;
-					pInfoHand->pTargets = ZG_NULL;
+					if (ppTileNodes[k] == pTileNode)
+						break;
 				}
 
-				pInfo->pHand = pInfoHand;
-			}
-			else
-				pInfoHand = ZG_NULL;
+				if (k < uLength)
+					continue;
 
-			if (pTileManagerObject->Instance.Instance.pData != ZG_NULL)
-			{
-				ZGUINT i, j, uSource, uDestination;
-				ZGINT nDamage;
-				LPZGTILENODE pTileNode;
-				LPZGRTSNODE pSource, pDestination = (LPZGRTSNODE)pTileManagerObject->Instance.Instance.pData;
-				LPZGRTSINFOTARGET pInfoTargets = (LPZGRTSINFOTARGET)(sg_auOutput + sg_uOffset);
-				for (i = 0; i < uCount; ++i)
+				if (uSize > ZG_RTS_BUFFER_SIZE)
+					++uLength;
+				else
 				{
-					pTileNode = ppTileNodes[i];
-					if (pTileNode == ZG_NULL || pTileNode->pData == ZG_NULL)
-						continue;
+					ppTileNodes[uLength++] = pTileNode;
 
-					pSource = (LPZGRTSNODE)pTileNode->pData;
+					uSize += sizeof(LPZGTILENODE);
+				}
+			}
 
-					nDamage = 0;
-					for (j = 0; j < ZG_RTS_ELEMENT_COUNT; ++j)
+			if (uLength > 0)
+			{
+				//__ZGRTSDo(pTileObjectAction->pData, pTileManagerObject->Instance.Instance.pData, pTileMap, uIndex, uLength, ppTileNodes);
+				if (sg_uCount < ZG_RTS_INFO_SIZE)
+				{
+					pInfo = &sg_aInfos[sg_uCount++];
+					pInfo->eType = ZG_RTS_INFO_TYPE_HAND;
+					pInfo->uElapsedTime = uElapsedTime;
+					pInfo->uTime = 0;
+					pInfo->pTileManagerObject = pTileManagerObject;
+
+					pInfoHand = (LPZGRTSINFOHAND)(sg_auOutput + sg_uOffset);
+
+					sg_uOffset += sizeof(ZGRTSINFOHAND);
+					if (sg_uOffset > ZG_RTS_OUTPUT_SIZE)
+						pInfoHand = ZG_NULL;
+					else
 					{
-						uSource = pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + j];
-						uDestination = pDestination->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + j];
-						nDamage -= uSource < uDestination ? uDestination - uSource : 0;
+						pInfoHand->uIndex = uIndex;
+						pInfoHand->pTileObjectAction = pTileObjectAction;
+						pInfoHand->uTargetCount = 0;
+						pInfoHand->pTargets = ZG_NULL;
 					}
 
-					pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_HP] += nDamage;
-					/*if (lHp <= 0)
-					ZGTileNodeUnset(pTileNode, pTileMap);*/
+					pInfo->pHand = pInfoHand;
+				}
+				else
+					pInfoHand = ZG_NULL;
 
-					if (pInfoHand != ZG_NULL)
+				if (pTileManagerObject->Instance.Instance.pData != ZG_NULL)
+				{
+					for (j = 0; j < uCount; ++j)
 					{
-						sg_uOffset += sizeof(ZGRTSINFOTARGET);
-						if (sg_uOffset <= ZG_RTS_BUFFER_SIZE)
+						pTileNode = ppTileNodes[j];
+						if (pTileNode == ZG_NULL || pTileNode->pData == ZG_NULL)
+							continue;
+
+						pSource = (LPZGRTSNODE)pTileNode->pData;
+
+						nDamage = 0;
+						for (k = 0; k < ZG_RTS_ELEMENT_COUNT; ++k)
 						{
-							pInfoTargets->pTileManagerObject = pSource->pTileManagerObject;
-							pInfoTargets->nDamage = nDamage;
+							uSource = pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_DEFENSE + k];
+							uDestination = pDestination->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_ATTACK + k];
+							nDamage -= uSource < uDestination ? uDestination - uSource : 0;
+						}
 
-							if (pInfoHand->pTargets == ZG_NULL)
-								pInfoHand->pTargets = pInfoTargets;
+						pSource->auAttributes[ZG_RTS_OBJECT_ATTRIBUTE_HP] += nDamage;
+						/*if (lHp <= 0)
+						ZGTileNodeUnset(pTileNode, pTileMap);*/
 
-							++pInfoTargets;
+						if (pInfoHand != ZG_NULL)
+						{
+							sg_uOffset += sizeof(ZGRTSINFOTARGET);
+							if (sg_uOffset <= ZG_RTS_BUFFER_SIZE)
+							{
+								pInfoTargets->pTileManagerObject = pSource->pTileManagerObject;
+								pInfoTargets->nDamage = nDamage;
 
-							++pInfoHand->uTargetCount;
+								if (pInfoHand->pTargets == ZG_NULL)
+									pInfoHand->pTargets = pInfoTargets;
+
+								++pInfoTargets;
+
+								++pInfoHand->uTargetCount;
+							}
 						}
 					}
 				}
-			}
 
-			return ZG_TRUE;
+				bResult = ZG_TRUE;
+			}
 		}
 	}
 
-	return ZG_FALSE;
+	return bResult;
 }
 
 ZGUINT __ZGRTSActiveSet(
@@ -369,6 +411,7 @@ ZGUINT __ZGRTSActiveCheck(
 		return 0;
 
 	sg_pTileMap = pTileNode == ZG_NULL ? ZG_NULL : pTileNode->pTileMap;
+	sg_uLevelSize = sg_pTileMap == ZG_NULL ? 0 : sg_pTileMap->Instance.Instance.uCount / sg_pTileMap->uLevel;
 
 	return ZGTileActionSearch(
 		&((LPZGRTSACTIONACTIVE)pTileObjectActionData)->Instance,
@@ -394,34 +437,42 @@ ZGUINT __ZGRTSNormalCheck(
 		return ZG_NULL;
 
 	LPZGRTSACTIONNORMAL pActionNormal = (LPZGRTSACTIONNORMAL)pTileObjectActionData;
-	ZGUINT uSourceIndexX = pTileNode->uIndex % pTileNode->pTileMap->Instance.uPitch, 
-		uSourceIndexY = pTileNode->uIndex / pTileNode->pTileMap->Instance.uPitch, 
-		uDestinationX, 
-		uDestinationY;
-	if (pActionNormal->uIndex == pTileNode->uIndex || pActionNormal->uIndex >= pTileNode->pTileMap->Instance.Instance.uCount)
+	ZGUINT uLevelSize = pTileNode->pTileMap->Instance.Instance.uCount / pTileNode->pTileMap->uLevel,
+		uLevel = pTileNode->uIndex / uLevelSize, 
+		uOffset = uLevel * uLevelSize, 
+		uMapIndex = pTileNode->uIndex - uOffset,
+		uSourceMapIndexX = uMapIndex % pTileNode->pTileMap->Instance.uPitch,
+		uSourceMapIndexY = uMapIndex / pTileNode->pTileMap->Instance.uPitch,
+		uDestinationMapIndexX, 
+		uDestinationMapIndexY;
+	if (pActionNormal->uMapIndex == uMapIndex || pActionNormal->uMapIndex >= uLevelSize)
 	{
-		ZGUINT uWidth = pTileNode->pTileMap->Instance.uPitch, uHeight = pTileNode->pTileMap->Instance.Instance.uCount / uWidth;
+		ZGUINT uWidth = pTileNode->pTileMap->Instance.uPitch, uHeight = uLevelSize / uWidth;
 		--uWidth;
 		--uHeight;
 
-		uDestinationX = uSourceIndexX + (ZGUINT)(rand() * 2.0f / RAND_MAX * pActionNormal->uRange);
-		uDestinationX = uDestinationX > pActionNormal->uRange ? uDestinationX - pActionNormal->uRange : 0;
-		uDestinationX = uDestinationX > uWidth ? uWidth : uDestinationX;
-		uDestinationY = uSourceIndexY + (ZGUINT)(rand() * 2.0f / RAND_MAX * pActionNormal->uRange);
-		uDestinationY = uDestinationY > pActionNormal->uRange ? uDestinationY - pActionNormal->uRange : 0;
-		uDestinationY = uDestinationY > uHeight ? uHeight : uDestinationY;
+		uDestinationMapIndexX = uSourceMapIndexX + (ZGUINT)(rand() * 2.0f / RAND_MAX * pActionNormal->uRange);
+		uDestinationMapIndexX = uDestinationMapIndexX > pActionNormal->uRange ? uDestinationMapIndexX - pActionNormal->uRange : 0;
+		uDestinationMapIndexX = uDestinationMapIndexX > uWidth ? uWidth : uDestinationMapIndexX;
+		uDestinationMapIndexY = uSourceMapIndexY + (ZGUINT)(rand() * 2.0f / RAND_MAX * pActionNormal->uRange);
+		uDestinationMapIndexY = uDestinationMapIndexY > pActionNormal->uRange ? uDestinationMapIndexY - pActionNormal->uRange : 0;
+		uDestinationMapIndexY = uDestinationMapIndexY > uHeight ? uHeight : uDestinationMapIndexY;
 
-		pActionNormal->uIndex = uSourceIndexX + uDestinationY * pTileNode->pTileMap->Instance.uPitch;
+		pActionNormal->uMapIndex = uSourceMapIndexX + uDestinationMapIndexY * pTileNode->pTileMap->Instance.uPitch;
 	}
 	else
 	{
-		uDestinationX = pActionNormal->uIndex % pTileNode->pTileMap->Instance.uPitch;
-		uDestinationY = pActionNormal->uIndex / pTileNode->pTileMap->Instance.uPitch;
+		uDestinationMapIndexX = pActionNormal->uMapIndex % pTileNode->pTileMap->Instance.uPitch;
+		uDestinationMapIndexY = pActionNormal->uMapIndex / pTileNode->pTileMap->Instance.uPitch;
 	}
 
+	ZGMAP Map = pTileNode->pTileMap->Instance;
+	Map.Instance.uOffset += uOffset;
+	Map.Instance.uCount = uLevelSize;
+
 	const ZGUINT uCOUNT = ZG_RTS_BUFFER_SIZE * sizeof(ZGUINT8) / sizeof(ZGUINT);
-	ZGUINT uDistanceX = ZG_ABS(uSourceIndexX, uDestinationX),
-		uDistanceY = ZG_ABS(uSourceIndexY, uDestinationY),
+	ZGUINT uDistanceX = ZG_ABS(uSourceMapIndexX, uDestinationMapIndexX),
+		uDistanceY = ZG_ABS(uSourceMapIndexY, uDestinationMapIndexY),
 		uDepth = 1, 
 		uIndex, 
 		uCount, 
@@ -440,23 +491,23 @@ ZGUINT __ZGRTSNormalCheck(
 	{
 		if (uDistanceX > 0)
 		{
-			uSourceIndexX = uSourceIndexX > uDestinationX ? uSourceIndexX - 1 : uSourceIndexX + 1;
+			uSourceMapIndexX = uSourceMapIndexX > uDestinationMapIndexX ? uSourceMapIndexX - 1 : uSourceMapIndexX + 1;
 
 			--uDistanceX;
 		}
 		
 		if (uDistanceY > 0)
 		{
-			uSourceIndexY = uSourceIndexY > uDestinationY ? uSourceIndexY - 1 : uSourceIndexY + 1;
+			uSourceMapIndexY = uSourceMapIndexY > uDestinationMapIndexY ? uSourceMapIndexY - 1 : uSourceMapIndexY + 1;
 
 			--uDistanceY;
 		}
 
-		uIndex = uSourceIndexX + uSourceIndexY * pTileNode->pTileMap->Instance.uPitch;
+		uIndex = uSourceMapIndexX + uSourceMapIndexY * pTileNode->pTileMap->Instance.uPitch;
 		uCount = uCOUNT;
 		if (pTileNode->pInstance != ZG_NULL && 
 			ZGMapTest(
-				&pTileNode->pTileMap->Instance, 
+				&Map,
 				&pTileNode->pInstance->Instance.Instance, 
 				uIndex,
 				pTileNode->pInstance->Instance.uOffset,
@@ -470,7 +521,7 @@ ZGUINT __ZGRTSNormalCheck(
 				ppTileNodes = (LPZGTILENODE*)(puIndices + uCount);
 				for (i = 0; i < uCount; ++i)
 				{
-					pTemp = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileNode->pTileMap, puIndices[i]))->pNode;
+					pTemp = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(pTileNode->pTileMap, puIndices[i] + uOffset))->pNode;
 					if (pTemp == ZG_NULL)
 						break;
 
@@ -502,7 +553,7 @@ ZGUINT __ZGRTSNormalCheck(
 			}
 		}
 
-		pNode->pNext = pTileNode->pTileMap->pNodes + uIndex;
+		pNode->pNext = pTileNode->pTileMap->pNodes + uIndex + uOffset;
 		pNode->pNext->uDepth = pNode->uDepth + 1;
 		pNode->pNext->uDistance = __ZGRTSPredicate(pNode->pData, pNode->pNext->pData);
 		pNode->pNext->uValue = pNode->uValue + pNode->pNext->uDistance;
@@ -515,8 +566,8 @@ ZGUINT __ZGRTSNormalCheck(
 
 	pNode->pNext = ZG_NULL;
 
-	if(uDestinationX > 0 || uDestinationY > 0)
-		pActionNormal->uIndex = ~0;
+	if(uDistanceX > 0 || uDistanceY > 0)
+		pActionNormal->uMapIndex = ~0;
 
 	return uDepth;
 }
@@ -595,7 +646,7 @@ LPZGTILEOBJECTACTION ZGRTSCreateActionNormal(ZGUINT uChildCount)
 	pResult->uChildCount = uChildCount;
 	pResult->ppChildren = (LPZGTILEOBJECTACTION*)(pActionNormal + 1);
 
-	pActionNormal->uIndex = ~0;
+	pActionNormal->uMapIndex = ~0;
 	pActionNormal->uRange = 5;
 
 	for (ZGUINT i = 0; i < uChildCount; ++i)
@@ -631,6 +682,9 @@ LPZGTILEOBJECTACTION ZGRTSCreateActionActive(
 
 	ZGTileRangeInitOblique(&pTileActionData->Distance, puDistanceFlags, uDistance);
 	ZGTileRangeInitOblique(&pTileActionData->Instance, puRangeFlags, uRange);
+
+	pTileActionData->puLevelIndices = ZG_NULL;
+	pTileActionData->uLevelCount = 0;
 
 	pActionActive->Instance.pInstance = pTileActionData;
 	pActionActive->Instance.uEvaluation = 0;
@@ -676,7 +730,7 @@ LPZGTILEMAP ZGRTSCreateMap(ZGUINT uWidth, ZGUINT uHeight, ZGBOOLEAN bIsOblique)
 	LPZGTILEACTIONMAPNODE pTileActionMapNodes = (LPZGTILEACTIONMAPNODE)(pTileNodeMapNodes + uCount);
 	LPZGRTSMAPNODE pMapNodes = (LPZGRTSMAPNODE)(pTileActionMapNodes + uCount);
 
-	ZGTileMapEnable(pResult, puFlags, ppNodes, pNodes, pTileMapNodes, uWidth, uHeight, bIsOblique);
+	ZGTileMapEnable(pResult, puFlags, ppNodes, pNodes, pTileMapNodes, ZG_NULL, 0, uWidth, uHeight, 1, bIsOblique);
 
 	ZGUINT i;
 	for (i = 0; i < uFlagLength; ++i)

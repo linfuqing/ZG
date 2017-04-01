@@ -129,7 +129,7 @@ extern "C" {
 	typedef struct ZGRTSActionNormal
 	{
 		ZGUINT uRange;
-		ZGUINT uIndex;
+		ZGUINT uMapIndex;
 	}ZGRTSACTIONNORMAL, *LPZGRTSACTIONNORMAL;
 
 	typedef struct ZGRTSActionActive

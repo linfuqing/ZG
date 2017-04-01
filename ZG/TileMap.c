@@ -7,6 +7,8 @@ static const ZGTILERANGE* sg_pTileRange;
 static ZGMAPTEST sg_pfnMapTest;
 static ZGTILEMAPTEST sg_pfnTileMapTest;
 
+static ZGUINT sg_uLevelSize;
+static ZGUINT sg_uLevel;
 static ZGUINT sg_uToIndexX;
 static ZGUINT sg_uToIndexY;
 
@@ -14,19 +16,33 @@ ZGUINT __ZGTileMapEvaluateDepth(void* pMapNode)
 {
 	const ZGTILEMAPNODE* pTemp = (const ZGTILEMAPNODE*)pMapNode;
 	
-	if (ZGMapVisit(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, sg_pfnMapTest))
+	ZGUINT uLevel = pTemp->uIndex / sg_uLevelSize,
+		uOffset = uLevel * sg_uLevelSize,
+		uIndex = pTemp->uIndex - uOffset;
+
+	ZGMAP Map = sg_pTileMap->Instance;
+	Map.Instance.uOffset += uOffset;
+	Map.Instance.uCount = sg_uLevelSize;
+	if (ZGMapVisit(&Map, &sg_pTileRange->Instance, uIndex, sg_pTileRange->uOffset, sg_pfnMapTest))
 		return ~0;
 
-	ZGUINT uFromX = pTemp->uIndex % sg_pTileMap->Instance.uPitch,
-		uFromY = pTemp->uIndex / sg_pTileMap->Instance.uPitch;
-	return ZG_ABS(uFromX, sg_uToIndexX) + ZG_ABS(uFromY, sg_uToIndexY);
+	ZGUINT uFromX = uIndex % sg_pTileMap->Instance.uPitch,
+		uFromY = uIndex / sg_pTileMap->Instance.uPitch;
+
+	return ZG_ABS(uFromX, sg_uToIndexX) + ZG_ABS(uFromY, sg_uToIndexY) + ZG_ABS(uLevel, sg_uLevel);
 }
 
 ZGUINT __ZGTileMapEvaluateBreadth(void* pMapNode)
 {
 	const ZGTILEMAPNODE* pTemp = (const ZGTILEMAPNODE*)pMapNode;
+	ZGUINT uLevel = pTemp->uIndex / sg_uLevelSize,
+		uOffset = uLevel * sg_uLevelSize, 
+		uIndex = pTemp->uIndex - uOffset;
 
-	if (ZGMapVisit(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, sg_pfnMapTest))
+	ZGMAP Map = sg_pTileMap->Instance;
+	Map.Instance.uOffset += uOffset;
+	Map.Instance.uCount = sg_uLevelSize;
+	if (ZGMapVisit(&Map, &sg_pTileRange->Instance, uIndex, sg_pTileRange->uOffset, sg_pfnMapTest))
 		return ~0;
 
 	return sg_pfnTileMapTest == ZG_NULL || sg_pfnTileMapTest(sg_pTileMap, sg_pTileRange, pTemp->uIndex) ? 0 : 1;
@@ -77,8 +93,12 @@ ZGUINT ZGTileMapSearchDepth(
 
 	sg_pfnMapTest = pfnMapTest;
 
-	sg_uToIndexX = uToIndex % pTileMap->Instance.uPitch;
-	sg_uToIndexY = uToIndex / pTileMap->Instance.uPitch;
+	sg_uLevelSize = pTileMap->Instance.Instance.uCount / pTileMap->uLevel;
+	sg_uLevel = uFromIndex / sg_uLevelSize;
+	ZGUINT uIndex = uFromIndex - sg_uLevel * sg_uLevelSize;
+
+	sg_uToIndexX = uIndex % pTileMap->Instance.uPitch;
+	sg_uToIndexY = uIndex / pTileMap->Instance.uPitch;
 
 	return ZGNodeSearch(
 		pTileMap->pNodes + uFromIndex, 
@@ -113,6 +133,8 @@ ZGUINT ZGTileMapSearchBreadth(
 	sg_pfnMapTest = pfnMapTest;
 	sg_pfnTileMapTest = pfnTileMapTest;
 
+	sg_uLevelSize = pTileMap->Instance.Instance.uCount / pTileMap->uLevel;
+
 	return ZGNodeSearch(
 		pTileMap->pNodes + uIndex,
 		pfnPredication,
@@ -130,96 +152,115 @@ void ZGTileMapEnable(
 	LPZGNODE* ppNodes,
 	LPZGNODE pNodes,
 	LPZGTILEMAPNODE pMapNodes,
+	LPZGTILEMAPBRIDGE pMapBridges,
+	ZGUINT uBridgeLength,
 	ZGUINT uWidth,
 	ZGUINT uHeight,
+	ZGUINT uDepth,
 	ZGBOOLEAN bIsOblique)
 {
 	if (pTileMap == ZG_NULL)
 		return;
 
+	pTileMap->uLevel = uDepth;
 	pTileMap->Instance.Instance.puFlags = puFlags;
-	pTileMap->Instance.Instance.uCount = uWidth * uHeight;
+	pTileMap->Instance.Instance.uCount = uWidth * uHeight * uDepth;
 	pTileMap->Instance.Instance.uOffset = 0;
 	pTileMap->Instance.uPitch = uWidth;
 	pTileMap->pNodes = pNodes;
 
-	ZGUINT uMaxX = uWidth - 1, uMaxY = uHeight - 1, uIndex = 0, i, j;
+	ZGUINT uMaxX = uWidth - 1, uMaxY = uHeight - 1, uIndex = 0, i, j, k, l;
 	LPZGNODE pNode;
 	LPZGTILEMAPNODE pMapNode;
-	for (j = 0; j < uHeight; ++j)
+	LPZGTILEMAPBRIDGE pMapBridge;
+	for (k = 0; k < uDepth; ++k)
 	{
-		for (i = 0; i < uWidth; ++i)
+		for (j = 0; j < uHeight; ++j)
 		{
-			pNode = pNodes + uIndex;
-			pMapNode = pMapNodes + uIndex;
-
-			pMapNode->uIndex = uIndex;
-
-			pNode->pData = pMapNode;
-
-			ZGNodeEnable(pNode);
-
-			pNode->uCount = 0;
-			pNode->ppChildren = ppNodes;
-
-			if (i > 0)
+			for (i = 0; i < uWidth; ++i)
 			{
-				++pNode->uCount;
-				*ppNodes++ = pNodes + (i - 1) + j * uWidth;
-			}
+				pNode = pNodes + uIndex;
+				pMapNode = pMapNodes + uIndex;
 
-			if (i < uMaxX)
-			{
-				++pNode->uCount;
-				*ppNodes++ = pNodes + (i + 1) + j * uWidth;
-			}
+				pMapNode->uIndex = uIndex;
 
-			if (j > 0)
-			{
-				++pNode->uCount;
-				*ppNodes++ = pNodes + i + (j - 1) * uWidth;
-			}
+				pNode->pData = pMapNode;
 
-			if (j < uMaxY)
-			{
-				++pNode->uCount;
-				*ppNodes++ = pNodes + i + (j + 1) * uWidth;
-			}
+				ZGNodeEnable(pNode);
 
-			if (bIsOblique)
-			{
+				pNode->uCount = 0;
+				pNode->ppChildren = ppNodes;
+
 				if (i > 0)
 				{
-					if (j > 0)
-					{
-						++pNode->uCount;
-						*ppNodes++ = pNodes + (i - 1) + (j - 1) * uWidth;
-					}
-
-					if (j < uMaxY)
-					{
-						++pNode->uCount;
-						*ppNodes++ = pNodes + (i - 1) + (j + 1) * uWidth;
-					}
+					++pNode->uCount;
+					*ppNodes++ = pNodes + (i - 1) + j * uWidth;
 				}
 
 				if (i < uMaxX)
 				{
-					if (j > 0)
+					++pNode->uCount;
+					*ppNodes++ = pNodes + (i + 1) + j * uWidth;
+				}
+
+				if (j > 0)
+				{
+					++pNode->uCount;
+					*ppNodes++ = pNodes + i + (j - 1) * uWidth;
+				}
+
+				if (j < uMaxY)
+				{
+					++pNode->uCount;
+					*ppNodes++ = pNodes + i + (j + 1) * uWidth;
+				}
+
+				if (bIsOblique)
+				{
+					if (i > 0)
 					{
-						++pNode->uCount;
-						*ppNodes++ = pNodes + (i + 1) + (j - 1) * uWidth;
+						if (j > 0)
+						{
+							++pNode->uCount;
+							*ppNodes++ = pNodes + (i - 1) + (j - 1) * uWidth;
+						}
+
+						if (j < uMaxY)
+						{
+							++pNode->uCount;
+							*ppNodes++ = pNodes + (i - 1) + (j + 1) * uWidth;
+						}
 					}
 
-					if (j < uMaxY)
+					if (i < uMaxX)
 					{
-						++pNode->uCount;
-						*ppNodes++ = pNodes + (i + 1) + (j + 1) * uWidth;
+						if (j > 0)
+						{
+							++pNode->uCount;
+							*ppNodes++ = pNodes + (i + 1) + (j - 1) * uWidth;
+						}
+
+						if (j < uMaxY)
+						{
+							++pNode->uCount;
+							*ppNodes++ = pNodes + (i + 1) + (j + 1) * uWidth;
+						}
 					}
 				}
-			}
 
-			++uIndex;
+				for (l = 0; l < uBridgeLength; ++l)
+				{
+					pMapBridge = pMapBridges + l;
+					if (pMapBridge->uFromIndex == uIndex)
+					{
+						++pNode->uCount;
+
+						*ppNodes++ = pNodes + pMapBridge->uToIndex;
+					}
+				}
+
+				++uIndex;
+			}
 		}
 	}
 }

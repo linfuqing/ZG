@@ -23,6 +23,9 @@ extern "C" {
 	{
 		ZGTILERANGE Instance;
 		ZGTILERANGE Distance;
+
+		PZGUINT puLevelIndices;
+		ZGUINT uLevelCount;
 	}ZGTILEACTIONDATA, *LPZGTILEACTIONDATA;
 
 	typedef struct ZGTileAction

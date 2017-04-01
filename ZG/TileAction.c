@@ -11,23 +11,33 @@ static ZGTILEACTIONTEST sg_pfnTileActionTest;
 
 static PZGUINT8 sg_puBuffer;
 static ZGUINT sg_uBufferLength;
+static ZGUINT sg_uLevelSize;
 
 ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 {
 	LPZGTILEMAPNODE pTemp = (LPZGTILEMAPNODE)pMapNode;
+
+	ZGUINT uLevel = pTemp->uIndex / sg_uLevelSize,
+		uOffset = uLevel * sg_uLevelSize,
+		uIndex = pTemp->uIndex - uOffset;
+
+	ZGMAP Map = sg_pTileMap->Instance;
+	Map.Instance.uOffset += uOffset;
+	Map.Instance.uCount = sg_uLevelSize;
+
 	ZGUINT uTemp = sg_uBufferLength * sizeof(ZGUINT8) / sizeof(ZGUINT), uCount, uLength, uSize, i, j;
 	PZGUINT puIndices;
 	LPZGTILENODE pTileNode, *ppTileNodes;
 	if (sg_pfnTileActionTest == ZG_NULL)
 	{
-		if (ZGMapTest(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, ZG_NULL, ZG_NULL))
+		if (ZGMapTest(&Map, &sg_pTileRange->Instance, uIndex, sg_pTileRange->uOffset, ZG_NULL, ZG_NULL))
 			return sg_pTileAction->uMaxEvaluation;
 	}
 	else
 	{
 		uCount = uTemp;
 		puIndices = (PZGUINT)sg_puBuffer;
-		if (ZGMapTest(&sg_pTileMap->Instance, &sg_pTileRange->Instance, pTemp->uIndex, sg_pTileRange->uOffset, &uCount, puIndices))
+		if (ZGMapTest(&Map, &sg_pTileRange->Instance, uIndex, sg_pTileRange->uOffset, &uCount, puIndices))
 		{
 			uSize = uCount * sizeof(ZGUINT) + sizeof(LPZGTILENODE);
 			if (uSize <= sg_uBufferLength)
@@ -36,7 +46,7 @@ ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 				ppTileNodes = (LPZGTILENODE*)(puIndices + uCount);
 				for (i = 0; i < uCount; ++i)
 				{
-					pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(sg_pTileMap, puIndices[i]))->pNode;
+					pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(sg_pTileMap, puIndices[i] + uOffset))->pNode;
 					if (pTileNode == ZG_NULL || pTileNode->pInstance == ZG_NULL)
 						return sg_pTileAction->uMaxEvaluation;
 
@@ -74,7 +84,18 @@ ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 			return sg_pTileAction->uMinEvaluation + 1 + uEvaluation;
 	}
 
-	ZGUINT uMaxLength = 0, uMinBit, uIndex;
+	ZGUINT uLevelCount = sg_pTileAction->pInstance == ZG_NULL ? 0 : sg_pTileAction->pInstance->uLevelCount;
+	PZGUINT puLevelIndices;
+	if (uLevelCount > 0)
+		puLevelIndices = sg_pTileAction->pInstance->puLevelIndices;
+	else
+	{
+		puLevelIndices = &uIndex;
+
+		uLevelCount = 1;
+	}
+
+	ZGUINT uMaxLength = 0, uMinBit, uMapIndex, uLevelIndex, k;
 	ZGBITFLAG BitFlag = sg_pTileAction->pInstance->Distance.Instance.Instance;
 	LPZGTILEACTIONMAPNODE pTileActionMapNode = (LPZGTILEACTIONMAPNODE)((LPZGTILENODEMAPNODE)ZGTileMapGetData(sg_pTileMap, pTemp->uIndex))->pData;
 	pTileActionMapNode->uMaxCount = 0;
@@ -85,66 +106,74 @@ ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 		{
 			BitFlag.uCount -= uMinBit;
 			BitFlag.uOffset += uMinBit;
-			uIndex = ZGTileConvert(
+			uMapIndex = ZGTileConvert(
 				sg_pTileMap->Instance.uPitch,
 				pTemp->uIndex,
 				sg_pTileAction->pInstance->Distance.Instance.uPitch,
 				BitFlag.uOffset - 1,
 				sg_pTileAction->pInstance->Distance.uOffset);
-			if (uIndex > 0)
+			if (uMapIndex > 0)
 			{
-				--uIndex;
-				uCount = uTemp;
-				puIndices = (PZGUINT)sg_puBuffer;
-				if (ZGMapTest(
-					&sg_pTileMap->Instance,
-					&sg_pTileAction->pInstance->Instance.Instance,
-					uIndex,
-					sg_pTileAction->pInstance->Instance.uOffset,
-					&uCount,
-					puIndices))
+				--uMapIndex;
+				for (i = 0; i < uLevelCount; ++i)
 				{
-					uSize = uCount * sizeof(ZGUINT) + sizeof(LPZGTILENODE);
-					uLength = 0;
-					ppTileNodes = (LPZGTILENODE*)(puIndices + uCount);
-					for (i = 0; i < uCount; ++i)
+					uLevelIndex = puLevelIndices[i];
+					uOffset = uLevelIndex * sg_uLevelSize;
+
+					Map.Instance.uOffset = sg_pTileMap->Instance.Instance.uOffset + uOffset;
+
+					uCount = uTemp;
+					puIndices = (PZGUINT)sg_puBuffer;
+					if (ZGMapTest(
+						&Map,
+						&sg_pTileAction->pInstance->Instance.Instance,
+						uMapIndex,
+						sg_pTileAction->pInstance->Instance.uOffset,
+						&uCount,
+						puIndices))
 					{
-						pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(sg_pTileMap, puIndices[i]))->pNode;
-						if (pTileNode == ZG_NULL)
-							continue;
-
-						if (sg_pTileAction->pfnAnalyzation != ZG_NULL && !sg_pTileAction->pfnAnalyzation(sg_pTileAction->pData, sg_pTileNodeData, pTileNode->pData))
-							continue;
-
-						for (j = 0; j < uLength; ++j)
+						uSize = uCount * sizeof(ZGUINT) + sizeof(LPZGTILENODE);
+						uLength = 0;
+						ppTileNodes = (LPZGTILENODE*)(puIndices + uCount);
+						for (j = 0; j < uCount; ++j)
 						{
-							if (ppTileNodes[j] == pTileNode)
-								break;
+							pTileNode = ((LPZGTILENODEMAPNODE)ZGTileMapGetData(sg_pTileMap, puIndices[j] + uOffset))->pNode;
+							if (pTileNode == ZG_NULL)
+								continue;
+
+							if (sg_pTileAction->pfnAnalyzation != ZG_NULL && !sg_pTileAction->pfnAnalyzation(sg_pTileAction->pData, sg_pTileNodeData, pTileNode->pData))
+								continue;
+
+							for (k = 0; k < uLength; ++k)
+							{
+								if (ppTileNodes[k] == pTileNode)
+									break;
+							}
+
+							if (k < uLength)
+								continue;
+
+							if (uSize > sg_uBufferLength)
+								++uLength;
+							else
+							{
+								ppTileNodes[uLength++] = pTileNode;
+
+								uSize += sizeof(LPZGTILENODE);
+							}
 						}
 
-						if (j < uLength)
-							continue;
+						uMaxLength = ZG_MAX(uMaxLength, uLength);
 
-						if (uSize > sg_uBufferLength)
-							++uLength;
-						else
+						if (uLength > pTileActionMapNode->uMaxCount)
 						{
-							ppTileNodes[uLength++] = pTileNode;
+							pTileActionMapNode->uMaxCount = uLength;
+							pTileActionMapNode->uMaxIndex = uMapIndex;
 
-							uSize += sizeof(LPZGTILENODE);
+							uCount = ZG_MIN(uLength, pTileActionMapNode->uCount);
+							for (j = 0; j < uCount; ++j)
+								pTileActionMapNode->ppNodes[j] = ppTileNodes[j];
 						}
-					}
-
-					uMaxLength = ZG_MAX(uMaxLength, uLength);
-
-					if (uLength > pTileActionMapNode->uMaxCount)
-					{
-						pTileActionMapNode->uMaxCount = uLength;
-						pTileActionMapNode->uMaxIndex = uIndex;
-
-						uCount = ZG_MIN(uLength, pTileActionMapNode->uCount);
-						for (i = 0; i < uCount; ++i)
-							pTileActionMapNode->ppNodes[i] = ppTileNodes[i];
 					}
 				}
 			}
@@ -185,8 +214,10 @@ ZGUINT ZGTileActionSearch(
 	sg_pfnTileActionEvaluation = pfnTileActionEvaluation;
 	sg_pfnTileActionTest = pfnTileActionTest;
 
-	sg_uBufferLength = uBufferLength;
 	sg_puBuffer = puBuffer;
+	sg_uBufferLength = uBufferLength;
+
+	sg_uLevelSize = pTileNode->pTileMap->Instance.Instance.uCount / pTileNode->pTileMap->uLevel;
 
 	return ZGNodeSearch(
 		pTileNode->pTileMap->pNodes + pTileNode->uIndex,

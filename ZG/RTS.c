@@ -211,7 +211,11 @@ ZGBOOLEAN __ZGRTSActiveHand(
 	if (uLevelCount > 0)
 		puLevelIndices = pActionActive->Instance.pInstance->puLevelIndices;
 	else
+	{
 		puLevelIndices = &uLevel;
+
+		uLevelCount = 1;
+	}
 
 	ZGBOOLEAN bResult = ZG_FALSE;
 	ZGUINT uMapIndex = uIndex - uOffset,

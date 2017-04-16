@@ -73,8 +73,8 @@ ZGBOOLEAN ZGTileNodeSetTo(
 
 	ZGTileNodeUnset(pTileNode);
 
-	ZGMAP Map = pTileNode->pTileMap->Instance;
-	Map.Instance.uCount /= pTileNode->pTileMap->uLevel;
+	ZGMAP Map = pTileMap->Instance;
+	Map.Instance.uCount /= pTileMap->uLevel;
 	ZGUINT uLevel = uIndex / Map.Instance.uCount,
 		uOffset = uLevel * Map.Instance.uCount, 
 		uMapIndex = uIndex - uOffset;

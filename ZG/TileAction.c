@@ -90,7 +90,7 @@ ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 		puLevelIndices = sg_pTileAction->pInstance->puLevelIndices;
 	else
 	{
-		puLevelIndices = &uIndex;
+		puLevelIndices = &uLevel;
 
 		uLevelCount = 1;
 	}
@@ -108,7 +108,7 @@ ZGUINT __ZGTileActionEvaluate(void* pMapNode)
 			BitFlag.uOffset += uMinBit;
 			uMapIndex = ZGTileConvert(
 				sg_pTileMap->Instance.uPitch,
-				pTemp->uIndex,
+				uIndex,
 				sg_pTileAction->pInstance->Distance.Instance.uPitch,
 				BitFlag.uOffset - 1,
 				sg_pTileAction->pInstance->Distance.uOffset);

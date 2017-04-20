@@ -7,9 +7,12 @@ extern "C" {
 	typedef struct ZGTileManagerHandler
 	{
 		void* pUserData;
+
+		struct ZGTileManagerObject* pObject;
+		struct ZGTileManagerHandler* pBackward;
+		struct ZGTileManagerHandler* pForward;
 		struct ZGTileManagerHandler* pNext;
 	}ZGTILEMANAGERHANDLER, *LPZGTILEMANAGERHANDLER;
-
 
 	typedef struct ZGTileManagerObject
 	{
@@ -31,6 +34,8 @@ extern "C" {
 	typedef void(*ZGTILEMANAGERDELAY)(void* pTileNodeData, ZGUINT uElapsedTime, ZGUINT uTime);
 
 	typedef ZGUINT(*ZGTILEMANAGERPREDICATION)(LPZGTILEMAP pTileMap, ZGUINT uFromIndex, ZGUINT uToIndex);
+
+	typedef ZGBOOLEAN(*ZGTILEMANAGERCHECK)(void* pUserData);
 
 	ZG_INLINE ZGBOOLEAN ZGTileManagerAdd(LPZGTILEMANAGER pTileManager, LPZGTILEMANAGEROBJECT pTileManagerObject)
 	{
@@ -80,6 +85,8 @@ extern "C" {
 		ZGUINT uTime,
 		ZGTILEMANAGERDELAY pfnTileManagerDelay,
 		ZGTILEMANAGERHAND pfnTileManagerHand);
+
+	void ZGTileManagerBreak(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uTime, ZGTILEMANAGERCHECK pfnCheck);
 #ifdef __cplusplus
 }
 #endif

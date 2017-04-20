@@ -1,8 +1,32 @@
 #include "TileManager.h"
 
+static LPZGTILEMANAGEROBJECT sg_pObject;
 static LPZGTILEMANAGERHANDLER sg_pHead;
 static LPZGTILEMANAGERHANDLER sg_pTail;
 static LPZGTILEMANAGERHANDLER sg_pPool;
+
+void __ZGTileManagerDetach(LPZGTILEMANAGERHANDLER pHandler, ZGBOOLEAN bIsFree)
+{
+	if (pHandler->pBackward != ZG_NULL)
+		pHandler->pBackward->pForward = pHandler->pForward;
+
+	if (pHandler->pForward != ZG_NULL)
+		pHandler->pForward->pBackward = pHandler->pBackward;
+
+	if (pHandler->pObject != ZG_NULL && pHandler->pObject->pHandler == pHandler)
+		pHandler->pObject->pHandler = pHandler->pForward;
+
+	pHandler->pObject = ZG_NULL;
+	pHandler->pBackward = ZG_NULL;
+	pHandler->pForward = ZG_NULL;
+
+	if (bIsFree)
+	{
+		pHandler->pNext = sg_pPool;
+
+		sg_pPool = pHandler;
+	}
+}
 
 void* __ZGTileManagerPop()
 {
@@ -25,6 +49,20 @@ void __ZGTileManangerPush(void* pUserData)
 
 	sg_pTail->pUserData = pUserData;
 	sg_pTail->pNext = ZG_NULL;
+
+	sg_pTail->pBackward = ZG_NULL;
+	if (sg_pObject == ZG_NULL)
+		sg_pTail->pForward = ZG_NULL;
+	else
+	{
+		sg_pTail->pForward = sg_pObject->pHandler;
+		if(sg_pObject->pHandler != ZG_NULL)
+			sg_pObject->pHandler->pBackward = sg_pTail;
+
+		sg_pObject->pHandler = sg_pTail;
+	}
+
+	sg_pTail->pObject = sg_pObject;
 }
 
 ZGBOOLEAN ZGTileManagerSet(
@@ -96,8 +134,7 @@ void ZGTileManagerRun(
 				pTail = sg_pTail;
 				sg_pTail = sg_pTail->pNext;
 
-				pTail->pNext = sg_pPool;
-				sg_pPool = pTail;
+				__ZGTileManagerDetach(pTail, ZG_TRUE);
 			}
 
 			pTileManager->pQueue = sg_pTail;
@@ -112,8 +149,7 @@ void ZGTileManagerRun(
 					pTail = sg_pTail->pNext;
 					sg_pTail->pNext = pTail->pNext;
 
-					pTail->pNext = sg_pPool;
-					sg_pPool = pTail;
+					__ZGTileManagerDetach(pTail, ZG_TRUE);
 				}
 				else
 					sg_pTail = sg_pTail->pNext;
@@ -128,6 +164,8 @@ void ZGTileManagerRun(
 	ZGUINT uDelayTime;
 	for (LPZGTILEMANAGEROBJECT pTileManagerObject = pTileManager->pObjects; pTileManagerObject != ZG_NULL; pTileManagerObject = pTileManagerObject->pNext)
 	{
+		sg_pObject = pTileManagerObject;
+
 		uDelayTime = ZGTileObjectRun(
 			&pTileManagerObject->Instance,
 			uTime,
@@ -149,8 +187,7 @@ void ZGTileManagerRun(
 				pTail = sg_pTail;
 				sg_pTail = sg_pTail->pNext;
 
-				pTail->pNext = sg_pPool;
-				sg_pPool = pTail;
+				__ZGTileManagerDetach(pTail, ZG_TRUE);
 			}
 			sg_pHead = sg_pTail;
 		}
@@ -166,10 +203,8 @@ void ZGTileManagerRun(
 					pTail = sg_pTail->pNext;
 					sg_pTail->pNext = pTail->pNext;
 
-					pTail->pNext = sg_pPool;
-					sg_pPool = pTail;
+					__ZGTileManagerDetach(pTail, ZG_TRUE);
 				}
-
 			}
 		}
 	}
@@ -178,4 +213,16 @@ void ZGTileManagerRun(
 		pTileManager->pQueue = sg_pHead;
 
 	pTileManager->pPool = sg_pPool;
+}
+
+void ZGTileManagerBreak(LPZGTILEMANAGEROBJECT pTileManagerObject, ZGUINT uTime, ZGTILEMANAGERCHECK pfnCheck)
+{
+	if (pTileManagerObject == ZG_NULL)
+		return;
+
+	while (pTileManagerObject->pHandler != ZG_NULL)
+		__ZGTileManagerDetach(pTileManagerObject->pHandler, pfnCheck(pTileManagerObject->pHandler->pUserData));
+
+	pTileManagerObject->Instance.nTime = 0;
+	pTileManagerObject->Instance.nTime -= uTime;
 }
